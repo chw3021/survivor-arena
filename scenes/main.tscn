@@ -1,0 +1,31 @@
+[gd_scene load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://scripts/main.gd" id="1_main"]
+[ext_resource type="PackedScene" path="res://scenes/player.tscn" id="2_player"]
+[ext_resource type="Script" path="res://scripts/enemy_spawner.gd" id="3_spawner"]
+[ext_resource type="PackedScene" path="res://scenes/enemy.tscn" id="4_enemy"]
+[ext_resource type="PackedScene" path="res://scenes/hud.tscn" id="5_hud"]
+
+[node name="Main" type="Node2D"]
+script = ExtResource("1_main")
+
+[node name="Arena" type="Node2D" parent="."]
+
+[node name="Floor" type="Polygon2D" parent="Arena"]
+z_index = -10
+color = Color(0.16, 0.19, 0.22, 1)
+polygon = PackedVector2Array(-2400, -2400, 2400, -2400, 2400, 2400, -2400, 2400)
+
+[node name="GridHint" type="Polygon2D" parent="Arena"]
+z_index = -9
+color = Color(0.2, 0.24, 0.28, 1)
+polygon = PackedVector2Array(-40, -40, 40, -40, 40, 40, -40, 40)
+
+[node name="Player" parent="." instance=ExtResource("2_player")]
+position = Vector2(0, 0)
+
+[node name="EnemySpawner" type="Node2D" parent="."]
+script = ExtResource("3_spawner")
+enemy_scene = ExtResource("4_enemy")
+
+[node name="HUD" parent="." instance=ExtResource("5_hud")]
