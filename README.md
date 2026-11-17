@@ -29,9 +29,11 @@ godot --path .
 
 ## GitHub Pages
 
-`main` 푸시 또는 Actions에서 **Deploy GitHub Pages** 수동 실행 시 Web export 후 배포된다.
+- 사이트: https://chw3021.github.io/survivor-arena/
+- 플레이: https://chw3021.github.io/survivor-arena/play.html
+- 설계 문서: https://chw3021.github.io/survivor-arena/docs/
 
-Repo **Settings → Pages → Source: GitHub Actions** 로 한 번 맞춰두면 된다.
+`main` 푸시 시 Godot Web export + `site/` 허브·문서를 함께 배포한다.
 
 로컬 Web export (export template 필요):
 
@@ -50,6 +52,7 @@ godot --headless --path . --export-release "Web" build/web/index.html
 ```
 scenes/     메인·플레이어·적·HUD
 scripts/    게임 로직
+site/       GitHub Pages 허브·설계 문서 (HTML)
 build/      export 결과 (gitignore)
 ```
 

@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>설계 레퍼런스 · Survivor Arena</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0e1216;
+      --panel: #161c23;
+      --panel-2: #1b232c;
+      --line: #2a3440;
+      --text: #e8eef4;
+      --muted: #9aa8b6;
+      --accent: #3ecf8e;
+      --accent-2: #5ec8ff;
+      --warn: #ffb454;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      font-family: "IBM Plex Sans KR", system-ui, sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(1000px 520px at 0% -5%, #1a2834 0%, transparent 55%),
+        radial-gradient(800px 420px at 100% 0%, #13241c 0%, transparent 50%),
+        var(--bg);
+      line-height: 1.65;
+    }
+    .wrap {
+      width: min(980px, calc(100% - 2rem));
+      margin: 0 auto;
+      padding: 2rem 0 4rem;
+      display: grid;
+      grid-template-columns: 220px 1fr;
+      gap: 2rem;
+    }
+    @media (max-width: 860px) {
+      .wrap { grid-template-columns: 1fr; }
+      nav.toc { position: static !important; }
+    }
+    header.top {
+      grid-column: 1 / -1;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem 1rem;
+      align-items: baseline;
+      justify-content: space-between;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid var(--line);
+    }
+    .brand {
+      font-family: Syne, sans-serif;
+      font-weight: 800;
+      font-size: 1.65rem;
+      letter-spacing: -0.02em;
+      margin: 0;
+    }
+    .brand span { color: var(--accent-2); }
+    .links a {
+      color: var(--muted);
+      text-decoration: none;
+      margin-left: 0.85rem;
+      font-size: 0.92rem;
+    }
+    .links a:hover { color: var(--text); }
+    nav.toc {
+      position: sticky;
+      top: 1rem;
+      align-self: start;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 1rem;
+    }
+    nav.toc h2 {
+      margin: 0 0 0.65rem;
+      font-size: 0.78rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      font-weight: 600;
+    }
+    nav.toc a {
+      display: block;
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 0.92rem;
+      padding: 0.28rem 0;
+    }
+    nav.toc a:hover { color: var(--accent-2); }
+    article section {
+      background: linear-gradient(180deg, var(--panel-2), var(--panel));
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 1.35rem 1.4rem 1.5rem;
+      margin-bottom: 1rem;
+    }
+    article h2 {
+      margin: 0 0 0.35rem;
+      font-family: Syne, sans-serif;
+      font-size: 1.35rem;
+      letter-spacing: -0.02em;
+    }
+    article .sub {
+      margin: 0 0 1rem;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+    p { margin: 0 0 0.85rem; }
+    ul { margin: 0 0 0.85rem; padding-left: 1.15rem; }
+    li { margin: 0.25rem 0; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.92rem;
+      margin: 0.4rem 0 0.2rem;
+    }
+    th, td {
+      border-top: 1px solid var(--line);
+      padding: 0.65rem 0.55rem;
+      vertical-align: top;
+      text-align: left;
+    }
+    th {
+      color: var(--muted);
+      font-weight: 600;
+      font-size: 0.8rem;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    .tag {
+      display: inline-block;
+      font-size: 0.75rem;
+      padding: 0.15rem 0.45rem;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      color: var(--muted);
+      margin-right: 0.35rem;
+    }
+    .note {
+      background: #141a14;
+      border: 1px solid #2a4032;
+      border-radius: 10px;
+      padding: 0.85rem 1rem;
+      color: #c7e6d3;
+      font-size: 0.92rem;
+    }
+    .note strong { color: var(--accent); }
+    a.ext {
+      color: var(--accent-2);
+      text-decoration: none;
+      border-bottom: 1px solid transparent;
+    }
+    a.ext:hover { border-bottom-color: var(--accent-2); }
+    ol.pack {
+      margin: 0;
+      padding-left: 1.2rem;
+    }
+    ol.pack li { margin: 0.4rem 0; }
+    code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 0.86em;
+      background: #0b0f13;
+      border: 1px solid var(--line);
+      border-radius: 5px;
+      padding: 0.05rem 0.35rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="top">
+      <h1 class="brand">Survivor Arena <span>Docs</span></h1>
+      <div class="links">
+        <a href="../">홈</a>
+        <a href="../play.html">플레이</a>
+      </div>
+    </header>
+
+    <nav class="toc" aria-label="목차">
+      <h2>Contents</h2>
+      <a href="#intro">개요</a>
+      <a href="#vs">뱀파이어 서바이벌</a>
+      <a href="#isaac">아이작</a>
+      <a href="#hades">하데스</a>
+      <a href="#kit">1차 몹 세트</a>
+      <a href="#vfx">VFX 자료</a>
+      <a href="#sources">원문 링크</a>
+    </nav>
+
+    <article>
+      <section id="intro">
+        <h2>개요</h2>
+        <p class="sub">타 작품의 아트·이름을 복제하지 않고, 전투 설계 패턴만 참고합니다.</p>
+        <p>
+          Survivor Arena는 Steam PC를 목표로 하되, GitHub Pages로 웹 플레이 테스트를 합니다.
+          조작은 <strong>WASD 이동 / 방향키 공격 / Space 대시(무적) / Q 무기 / E 액티브</strong>입니다.
+        </p>
+        <div class="note">
+          <strong>하이브리드 방향:</strong>
+          뱀서의 물량·스폰 이벤트 + 아이작의 몹 아키타입 + 하데스의 텔레그래프·대시 전제 전투.
+          자동공격 전용이 아니라 수동 조준이 있으므로, “읽을 수 있는 위협”을 더 넣어도 됩니다.
+        </div>
+      </section>
+
+      <section id="vs">
+        <h2>뱀파이어 서바이벌</h2>
+        <p class="sub">핵심은 개별 AI보다 스폰 디렉터와 맵 이벤트입니다.</p>
+        <span class="tag">물량</span><span class="tag">웨이브</span><span class="tag">이벤트</span>
+        <table>
+          <thead>
+            <tr><th>패턴</th><th>동작</th><th>플레이어 반응</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>웨이브 스케일</strong></td>
+              <td>시간(분)마다 적 종류·밀도·스폰 간격 상승</td>
+              <td>빌드 스노우볼 vs 압박</td>
+            </tr>
+            <tr>
+              <td><strong>Chase 잡졸</strong></td>
+              <td>화면 밖에서 생성되어 플레이어로 추격</td>
+              <td>이동으로 딜 박스 유지</td>
+            </tr>
+            <tr>
+              <td><strong>Swarm</strong></td>
+              <td>한 방향으로 떼 지어 돌진 (박쥐·유령 등)</td>
+              <td>옆으로 빠지거나 화력으로 뚫기</td>
+            </tr>
+            <tr>
+              <td><strong>Wall / Circle</strong></td>
+              <td>꽃·해파리 등이 원을 둘러쌈</td>
+              <td>돌파 또는 내부에서 딜</td>
+            </tr>
+            <tr>
+              <td><strong>Stream</strong></td>
+              <td>좌우로 흘러가듯 통과 (메두사 머리 등)</td>
+              <td>타이밍 회피</td>
+            </tr>
+            <tr>
+              <td><strong>Boss + Chest</strong></td>
+              <td>고체력 개체, 처치 시 보상 상자</td>
+              <td>일시적 목표 전환</td>
+            </tr>
+            <tr>
+              <td><strong>자폭 / 설치형</strong></td>
+              <td>접근 폭발 또는 고정 후 폭발</td>
+              <td>거리 관리</td>
+            </tr>
+            <tr>
+              <td><strong>Reaper급</strong></td>
+              <td>시간 제한 압박 개체</td>
+              <td>도망 또는 극딜</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section id="isaac">
+        <h2>아이작의 번제</h2>
+        <p class="sub">방 클리어 게임이지만, 몹 행동 카탈로그로 가장 훔치기 좋습니다.</p>
+        <span class="tag">아키타입</span><span class="tag">챔피언 변이</span>
+        <table>
+          <thead>
+            <tr><th>아키타입</th><th>행동</th><th>서바이버 이식</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><strong>Contact chaser</strong></td><td>접촉 추격</td><td>기본 잡졸</td></tr>
+            <tr><td><strong>Shooter</strong></td><td>직선·부채·호 탄막</td><td>중거리 압박</td></tr>
+            <tr><td><strong>Hopper</strong></td><td>점프 후 착지 딜레이</td><td>예측 가능한 위협</td></tr>
+            <tr><td><strong>Spawner / Nest</strong></td><td>본체 고정, 새끼 생산</td><td>우선 처치 타겟</td></tr>
+            <tr><td><strong>Splitter</strong></td><td>사망 시 분열</td><td>과딜·위치 관리</td></tr>
+            <tr><td><strong>Bomber</strong></td><td>접근 자폭</td><td>대시로 띄우기 좋음</td></tr>
+            <tr><td><strong>Orbit / Shield</strong></td><td>본체 주변을 맴돔</td><td>근접 견제</td></tr>
+            <tr><td><strong>Telegraph slam</strong></td><td>예고 후 강하·돌진</td><td>보스·엘리트</td></tr>
+          </tbody>
+        </table>
+        <p><strong>챔피언 변이 아이디어</strong> (몹 종류를 늘리지 않고 변주):</p>
+        <ul>
+          <li>처치 시 8방향 탄</li>
+          <li>피격마다 새끼 소환</li>
+          <li>투명 / 지형 무시</li>
+          <li>느린 대신 두껍고 넉백 면역</li>
+        </ul>
+      </section>
+
+      <section id="hades">
+        <h2>하데스</h2>
+        <p class="sub">텔레그래프와 대시 무적이 전제된 전투. 현재 조작과 가장 잘 맞습니다.</p>
+        <span class="tag">예고</span><span class="tag">대시</span><span class="tag">페이즈</span>
+        <table>
+          <thead>
+            <tr><th>패턴</th><th>요지</th><th>Survivor Arena 활용</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><strong>예고 원형 휩쓸기</strong></td><td>범위 표시 후 광역</td><td>엘리트 AOE</td></tr>
+            <tr><td><strong>찌르기 / 돌진</strong></td><td>빠른 직선</td><td>옆으로 대시</td></tr>
+            <tr><td><strong>Cast → 착탄 폭탄</strong></td><td>피격 디버프, 미스 시 필드 폭탄</td><td>설치형 위협</td></tr>
+            <tr><td><strong>투명 후 재등장</strong></td><td>발자국·사운드 힌트</td><td>중반 특수몹</td></tr>
+            <tr><td><strong>소환 구간(무적)</strong></td><td>본체 쉬고 잡졸 소환</td><td>보스 페이즈</td></tr>
+            <tr><td><strong>장판 / 함정</strong></td><td>깨면 스턴 장판</td><td>맵 오브젝트</td></tr>
+            <tr><td><strong>추적 레이저</strong></td><td>지형 뒤로 회피</td><td>후반 보스</td></tr>
+          </tbody>
+        </table>
+        <p>교훈: <strong>맞기 전에 읽을 시간</strong>을 줍니다. 물량만으로는 수동 조준 게임이 답답해집니다.</p>
+      </section>
+
+      <section id="kit">
+        <h2>1차 몹 세트 제안</h2>
+        <p class="sub">추격 잡졸만 있는 상태를 벗어나기 위한 최소 구성입니다.</p>
+        <ol class="pack">
+          <li><strong>Grunt</strong> — 추격 접촉 (현재)</li>
+          <li><strong>Runner</strong> — 빠르고 체력 낮음 (스웜용)</li>
+          <li><strong>Shooter</strong> — 정지/저속 이동하며 탄 발사</li>
+          <li><strong>Bomber</strong> — 근접 자폭 (대시 리워드)</li>
+          <li><strong>Spawner</strong> — 고정 네스트 (우선 처치)</li>
+          <li><strong>Elite</strong> — 예고 돌진 또는 원형 휩쓸기 + 보상</li>
+        </ol>
+        <p><strong>웨이브 이벤트 3종 (우선):</strong></p>
+        <ul>
+          <li><code>Bat Swarm</code> — 한 방향 돌진</li>
+          <li><code>Ring Wall</code> — 둘러싸기 약 30초</li>
+          <li><code>Boss Drop</code> — 처치 시 보상</li>
+        </ul>
+      </section>
+
+      <section id="vfx">
+        <h2>VFX / 이펙트 자료</h2>
+        <p class="sub">폭발, 화염, 히트 스파크 등을 모은 에셋·허브입니다. 라이선스는 사용 전 다시 확인하세요.</p>
+        <table>
+          <thead>
+            <tr><th>자료</th><th>특징</th><th>라이선스</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><a class="ext" href="https://nerijs.itch.io/pvfx-foundry" target="_blank" rel="noopener">PVFX Foundry</a></td>
+              <td>폭발·화염·번개 등 101종, JSON 메타</td>
+              <td>CC0</td>
+            </tr>
+            <tr>
+              <td><a class="ext" href="https://cs5475.itch.io/free-pixel-effects" target="_blank" rel="noopener">Free Pixel Effects</a></td>
+              <td>폭발·히트·마법, Godot SpriteFrames 포함</td>
+              <td>CC0</td>
+            </tr>
+            <tr>
+              <td><a class="ext" href="https://heyheythere.itch.io/explosion-fx-free" target="_blank" rel="noopener">Explosion FX Free</a></td>
+              <td>폭발·불·연기, Godot 스폰 헬퍼</td>
+              <td>CC BY 4.0 (크레딧)</td>
+            </tr>
+            <tr>
+              <td><a class="ext" href="https://kenney.nl/assets/tag:vfx" target="_blank" rel="noopener">Kenney VFX</a></td>
+              <td>파티클·스모크·스플랫</td>
+              <td>CC0</td>
+            </tr>
+            <tr>
+              <td><a class="ext" href="https://opengameart.org/content/pixel-fx-pack" target="_blank" rel="noopener">OGA Pixel FX Pack</a></td>
+              <td>CodeManu 픽셀 FX</td>
+              <td>CC0</td>
+            </tr>
+            <tr>
+              <td><a class="ext" href="https://opengameart.org/content/free-vfx-asset-pack" target="_blank" rel="noopener">OGA Free VFX Pack</a></td>
+              <td>22종, 30/60fps 시트</td>
+              <td>CC0</td>
+            </tr>
+            <tr>
+              <td><a class="ext" href="https://craftpix.net/" target="_blank" rel="noopener">CraftPix</a></td>
+              <td>폭발·마법 팩 (유료+일부 무료)</td>
+              <td>팩별 확인</td>
+            </tr>
+            <tr>
+              <td><a class="ext" href="https://itch.io/game-assets/free/tag-vfx" target="_blank" rel="noopener">itch.io VFX 검색</a></td>
+              <td>무료 VFX 지속 업로드</td>
+              <td>개별 확인</td>
+            </tr>
+          </tbody>
+        </table>
+        <p>Godot 우선 후보: <strong>Free Pixel Effects</strong> → <strong>PVFX Foundry</strong> → <strong>Explosion FX Free</strong>.</p>
+      </section>
+
+      <section id="sources">
+        <h2>원문 링크</h2>
+        <p class="sub">조사 시 참고한 문서입니다.</p>
+        <ul>
+          <li><a class="ext" href="https://namu.wiki/w/%EB%B1%80%EC%84%9C%EB%9D%BC%EC%9D%B4%ED%81%AC" target="_blank" rel="noopener">나무위키 · 뱀서라이크</a></li>
+          <li><a class="ext" href="https://namu.wiki/w/Vampire%20Survivors" target="_blank" rel="noopener">나무위키 · Vampire Survivors</a></li>
+          <li><a class="ext" href="https://vampire.survivors.wiki/w/Enemies" target="_blank" rel="noopener">VS Wiki · Enemies</a></li>
+          <li><a class="ext" href="https://namu.wiki/w/Vampire%20Survivors/%EB%9E%9C%EB%8D%A4%20%EC%9D%B4%EB%B2%A4%ED%8A%B8" target="_blank" rel="noopener">나무위키 · VS 랜덤 이벤트</a></li>
+          <li><a class="ext" href="https://namu.wiki/w/%EC%95%84%EC%9D%B4%EC%9E%91%EC%9D%98%20%EB%B2%88%EC%A0%9C/%EB%AA%AC%EC%8A%A4%ED%84%B0" target="_blank" rel="noopener">나무위키 · 아이작/몬스터</a></li>
+          <li><a class="ext" href="https://namu.wiki/w/%EC%95%84%EC%9D%B4%EC%9E%91%EC%9D%98%20%EB%B2%88%EC%A0%9C/%EB%B3%B4%EC%8A%A4" target="_blank" rel="noopener">나무위키 · 아이작/보스</a></li>
+          <li><a class="ext" href="https://namu.wiki/w/%ED%95%98%EB%8D%B0%EC%8A%A4(Hades)" target="_blank" rel="noopener">나무위키 · 하데스(보스)</a></li>
+          <li><a class="ext" href="https://namu.wiki/w/Hades(%EA%B2%8C%EC%9E%84)" target="_blank" rel="noopener">나무위키 · Hades(게임)</a></li>
+        </ul>
+      </section>
+    </article>
+  </div>
+</body>
+</html>

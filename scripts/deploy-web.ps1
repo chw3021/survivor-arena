@@ -14,5 +14,13 @@ if ($LASTEXITCODE -ne 0) {
 	throw "Godot web export failed (exit $LASTEXITCODE). Install Web export templates in Godot first."
 }
 
-Write-Host "Done. Open build/web/index.html via a local static server, or push to main for GitHub Pages."
+$PlayHtml = Join-Path $OutDir "play.html"
+$IndexHtml = Join-Path $OutDir "index.html"
+Move-Item -Force $IndexHtml $PlayHtml
+Copy-Item -Force (Join-Path $Root "site\index.html") $IndexHtml
+$DocsDir = Join-Path $OutDir "docs"
+New-Item -ItemType Directory -Force -Path $DocsDir | Out-Null
+Copy-Item -Recurse -Force (Join-Path $Root "site\docs\*") $DocsDir
+
+Write-Host "Done. Hub: build/web/index.html | Play: build/web/play.html | Docs: build/web/docs/"
 Write-Host "Example: npx --yes serve build/web"

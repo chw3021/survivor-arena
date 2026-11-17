@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Survivor Arena</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0e1216;
+      --panel: #171d24;
+      --line: #2a3440;
+      --text: #e8eef4;
+      --muted: #9aa8b6;
+      --accent: #3ecf8e;
+      --accent-2: #5ec8ff;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "IBM Plex Sans KR", system-ui, sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(900px 500px at 10% -10%, #1a2834 0%, transparent 60%),
+        radial-gradient(700px 400px at 100% 0%, #13241c 0%, transparent 55%),
+        var(--bg);
+    }
+    main {
+      width: min(720px, calc(100% - 2rem));
+      margin: 0 auto;
+      padding: 4.5rem 0 3rem;
+    }
+    .brand {
+      font-family: Syne, sans-serif;
+      font-weight: 800;
+      font-size: clamp(2.4rem, 8vw, 3.6rem);
+      letter-spacing: -0.03em;
+      line-height: 1;
+      margin: 0 0 0.75rem;
+    }
+    .lead {
+      margin: 0 0 2rem;
+      color: var(--muted);
+      font-size: 1.05rem;
+      line-height: 1.6;
+    }
+    .actions {
+      display: grid;
+      gap: 0.9rem;
+    }
+    a.card {
+      display: block;
+      text-decoration: none;
+      color: inherit;
+      background: linear-gradient(180deg, #1b232c, var(--panel));
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 1.15rem 1.25rem;
+      transition: border-color 0.15s ease, transform 0.15s ease;
+    }
+    a.card:hover {
+      border-color: #456074;
+      transform: translateY(-1px);
+    }
+    a.card strong {
+      display: block;
+      font-size: 1.15rem;
+      margin-bottom: 0.25rem;
+    }
+    a.card span {
+      color: var(--muted);
+      font-size: 0.95rem;
+      line-height: 1.45;
+    }
+    a.card.play strong { color: var(--accent); }
+    a.card.docs strong { color: var(--accent-2); }
+    footer {
+      margin-top: 2.5rem;
+      color: var(--muted);
+      font-size: 0.85rem;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1 class="brand">Survivor Arena</h1>
+    <p class="lead">뱀서라이크 프로토타입입니다. 플레이하거나 설계 참고 문서를 확인하실 수 있습니다.</p>
+    <div class="actions">
+      <a class="card play" href="./play.html">
+        <strong>게임 플레이</strong>
+        <span>WASD 이동, 방향키 공격, Space 대시, Q 무기, E 액티브</span>
+      </a>
+      <a class="card docs" href="./docs/">
+        <strong>설계 레퍼런스</strong>
+        <span>뱀파이어 서바이벌 · 아이작 · 하데스 몹 패턴과 VFX 자료 모음</span>
+      </a>
+    </div>
+    <footer>Godot 4 · Steam 타깃 · GitHub Pages 테스트 빌드</footer>
+  </main>
+</body>
+</html>

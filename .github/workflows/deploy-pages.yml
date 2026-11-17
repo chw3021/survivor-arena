@@ -33,6 +33,14 @@ jobs:
           mkdir -p build/web
           godot --headless --path . --export-release "Web" build/web/index.html
 
+      - name: Assemble site hub and docs
+        run: |
+          # Godot entry becomes /play.html; hub + docs sit beside it.
+          mv build/web/index.html build/web/play.html
+          cp site/index.html build/web/index.html
+          mkdir -p build/web/docs
+          cp -r site/docs/. build/web/docs/
+
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
