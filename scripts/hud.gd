@@ -17,6 +17,7 @@ func setup(p: Node) -> void:
 		player.died.connect(_on_player_died)
 	Game.kills_changed.connect(_refresh)
 	Game.time_changed.connect(_refresh)
+	Game.wave_changed.connect(_refresh)
 	_refresh()
 
 
@@ -33,12 +34,13 @@ func _refresh(_arg: Variant = null) -> void:
 	var t := int(Game.elapsed)
 	var mm := t / 60
 	var ss := t % 60
-	info_label.text = "HP %d/%d | Weapon: %s | Dash %.0f%% | Active %.0f%% | Kills %d | %02d:%02d" % [
+	info_label.text = "HP %d/%d | Weapon: %s | Dash %.0f%% | Active %.0f%% | Wave %d | Kills %d | %02d:%02d" % [
 		int(player.hp),
 		int(player.max_hp),
 		player.get_weapon_name(),
 		player.get_dash_ready_ratio() * 100.0,
 		player.get_active_ready_ratio() * 100.0,
+		Game.wave,
 		Game.kills,
 		mm,
 		ss,
