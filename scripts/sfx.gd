@@ -2,7 +2,7 @@ extends Node
 
 ## SFX: Godot Sample + 웹 제스처 unlock
 ## BGM: 네이티브=Godot / 웹=HTML5 Audio(bgm/*.wav)
-## 로비=bgm_lobby / 전투=arena
+## 로비=테마별 bgm_lobby* / 전투=arena
 ## 참고: CompanyDefense docs/godot-web-audio.md
 
 const BUS_MASTER := "Master"
@@ -13,8 +13,12 @@ const PLAYBACK_SAMPLE := 2
 const SFX_DIR := "res://assets/sfx/"
 const BGM_DIR := "res://assets/bgm/"
 const BGM_LOBBY := "bgm_lobby"
+const BGM_LOBBY_GRUNGE := "bgm_lobby_grunge"
+const BGM_LOBBY_CLEAN := "bgm_lobby_clean"
+const BGM_LOBBY_SIMPLE := "bgm_lobby_simple"
 const BGM_ARENA := "arena"
 const BGM_ID := BGM_LOBBY # 기본/부팅용 (메뉴)
+const BGM_LOBBY_IDS := [BGM_LOBBY, BGM_LOBBY_GRUNGE, BGM_LOBBY_CLEAN, BGM_LOBBY_SIMPLE]
 
 const SFX_IDS := [
 	"gunshot", "reload", "dash", "hurt", "hit",
@@ -73,10 +77,26 @@ func _ready() -> void:
 		call_deferred("_boot_native_bgm")
 
 
+func lobby_bgm_for_theme(theme_id: String) -> String:
+	match theme_id:
+		"grunge":
+			return BGM_LOBBY_GRUNGE
+		"clean":
+			return BGM_LOBBY_CLEAN
+		"simple":
+			return BGM_LOBBY_SIMPLE
+		_:
+			return BGM_LOBBY
+
+
 func _boot_native_bgm() -> void:
 	apply_volumes()
 	if _want_bgm:
-		play_bgm(_pending_bgm if _pending_bgm != "" else BGM_ID, true)
+		var id := _pending_bgm
+		if id == "" or id == BGM_ID:
+			if Loadout != null:
+				id = lobby_bgm_for_theme(str(Loadout.ui_theme_id))
+		play_bgm(id if id != "" else BGM_ID, true)
 
 
 func _process(_dt: float) -> void:
@@ -259,8 +279,9 @@ func _load_streams() -> void:
 		_streams[id] = stream
 
 	if not OS.has_feature("web"):
-		for bgm_id in [BGM_LOBBY, BGM_ARENA]:
+		for bgm_id in BGM_LOBBY_IDS:
 			_load_native_bgm(bgm_id)
+		_load_native_bgm(BGM_ARENA)
 
 	_alog("loaded count=%d" % _streams.size())
 
@@ -402,7 +423,7 @@ func _html_bgm_preload() -> void:
 					else startFade();
 				});
 			};
-			['bgm_lobby', 'arena'].forEach(function (id) {
+			['bgm_lobby', 'bgm_lobby_grunge', 'bgm_lobby_clean', 'bgm_lobby_simple', 'arena'].forEach(function (id) {
 				if (!window.__saBgm[id]) {
 					var a = new Audio('bgm/' + id + '.wav');
 					a.preload = 'auto';
@@ -411,7 +432,7 @@ func _html_bgm_preload() -> void:
 					window.__saBgm[id] = a;
 				}
 			});
-			console.log('[Audio/html] preload bgm_lobby+arena');
+			console.log('[Audio/html] preload lobby themes+arena');
 		})();
 	""")
 

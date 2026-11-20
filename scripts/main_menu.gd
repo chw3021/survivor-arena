@@ -39,10 +39,10 @@ func _ready() -> void:
 	settings_modal.visible = false
 	detail_modal.visible = false
 	Sfx.ensure_web_unlocked()
-	Sfx.play_bgm(Sfx.BGM_LOBBY, false)
+	Sfx.play_bgm(Sfx.lobby_bgm_for_theme(UiTheme.theme_id), false)
 
 
-func _on_theme_changed(_id: String) -> void:
+func _on_theme_changed(id: String) -> void:
 	var keep := _tab
 	var settings_open := settings_modal.visible
 	_rebuild_ui()
@@ -50,6 +50,7 @@ func _on_theme_changed(_id: String) -> void:
 	if settings_open:
 		_build_settings_modal()
 		settings_modal.visible = true
+	Sfx.play_bgm(Sfx.lobby_bgm_for_theme(id), true)
 
 
 func _rebuild_ui() -> void:
@@ -72,12 +73,33 @@ func _setup_background() -> void:
 
 
 func _style_chrome() -> void:
-	side_bar.add_theme_stylebox_override("panel", UiTheme.panel_style())
+	UiTheme.apply_panel(side_bar)
 	UiTheme.apply_font(brand, 28, UiTheme.C_TEXT, "semibold")
 	UiTheme.apply_font(tagline, 13, UiTheme.C_MUTED, "medium")
 	for b in _nav_btns:
 		UiTheme.style_button(b, false)
 	UiTheme.style_button(sound_btn, false)
+
+
+## PanelContainer 위에 코너 장식을 올리려면 Control 셸이 필요하다.
+func _mount_skinned_panel(parent: Control, full_rect: bool = true, min_size: Vector2 = Vector2.ZERO) -> PanelContainer:
+	var shell := Control.new()
+	if full_rect:
+		shell.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	else:
+		shell.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		shell.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	if min_size != Vector2.ZERO:
+		shell.custom_minimum_size = min_size
+	parent.add_child(shell)
+	var panel := PanelContainer.new()
+	panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	if min_size != Vector2.ZERO:
+		panel.custom_minimum_size = min_size
+	UiTheme.apply_panel(panel)
+	shell.add_child(panel)
+	UiTheme.decorate_panel(shell)
+	return panel
 
 
 func _show_tab(tab: int) -> void:
@@ -127,10 +149,7 @@ func _muted_label(text: String, size: int = 15) -> Label:
 func _build_play_page() -> void:
 	for c in play_page.get_children():
 		c.queue_free()
-	var panel := PanelContainer.new()
-	panel.add_theme_stylebox_override("panel", UiTheme.panel_style())
-	panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	play_page.add_child(panel)
+	var panel := _mount_skinned_panel(play_page, true)
 	var v := VBoxContainer.new()
 	v.add_theme_constant_override("separation", 14)
 	panel.add_child(v)
@@ -139,7 +158,7 @@ func _build_play_page() -> void:
 
 	for id in ["easy", "normal", "hard"]:
 		var card := PanelContainer.new()
-		card.add_theme_stylebox_override("panel", UiTheme.slot_style(false))
+		UiTheme.apply_slot(card, false)
 		card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		var row := HBoxContainer.new()
 		row.add_theme_constant_override("separation", 14)
@@ -198,12 +217,17 @@ func _build_equip_page() -> void:
 	slots.name = "Slots"
 	root.add_child(slots)
 
+	var list_shell := Control.new()
+	list_shell.name = "ListShell"
+	list_shell.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	list_shell.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	root.add_child(list_shell)
 	var list_panel := PanelContainer.new()
 	list_panel.name = "ListPanel"
-	list_panel.add_theme_stylebox_override("panel", UiTheme.panel_style())
-	list_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	list_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	root.add_child(list_panel)
+	list_panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	UiTheme.apply_panel(list_panel)
+	list_shell.add_child(list_panel)
+	UiTheme.decorate_panel(list_shell)
 	var outer := VBoxContainer.new()
 	outer.name = "Outer"
 	outer.add_theme_constant_override("separation", 10)
@@ -231,10 +255,7 @@ func _build_equip_page() -> void:
 func _build_codex_page() -> void:
 	for c in codex_page.get_children():
 		c.queue_free()
-	var panel := PanelContainer.new()
-	panel.add_theme_stylebox_override("panel", UiTheme.panel_style())
-	panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	codex_page.add_child(panel)
+	var panel := _mount_skinned_panel(codex_page, true)
 	var scroll := ScrollContainer.new()
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
@@ -277,7 +298,7 @@ func _build_codex_page() -> void:
 		v.add_child(_codex_card(e))
 
 	var rule := PanelContainer.new()
-	rule.add_theme_stylebox_override("panel", UiTheme.slot_style(false))
+	UiTheme.apply_slot(rule, false)
 	var rv := VBoxContainer.new()
 	rv.add_theme_constant_override("separation", 6)
 	rule.add_child(rv)
@@ -304,7 +325,7 @@ func _codex_card(e: Dictionary) -> PanelContainer:
 	var armor: int = int(e["armor"])
 	var color: Color = DamageTypes.ARMOR_COLORS[armor]
 	var panel := PanelContainer.new()
-	panel.add_theme_stylebox_override("panel", UiTheme.slot_style(false))
+	UiTheme.apply_slot(panel, false)
 	var h := HBoxContainer.new()
 	h.add_theme_constant_override("separation", 14)
 	panel.add_child(h)
@@ -362,7 +383,7 @@ func _refresh_equip_page() -> void:
 	slots.add_child(_slot_card("주무기", Loadout.primary_id, "primary"))
 	slots.add_child(_slot_card("보조무기", Loadout.secondary_id, "secondary"))
 
-	var grid: GridContainer = root.get_node("ListPanel/Outer/Scroll/WeaponGrid")
+	var grid: GridContainer = root.get_node("ListShell/ListPanel/Outer/Scroll/WeaponGrid")
 	while grid.get_child_count() > 0:
 		var ch := grid.get_child(0)
 		grid.remove_child(ch)
@@ -384,7 +405,7 @@ func _inventory_cell(w: Dictionary) -> PanelContainer:
 	var panel := PanelContainer.new()
 	panel.custom_minimum_size = Vector2(120, 148)
 	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	panel.add_theme_stylebox_override("panel", UiTheme.slot_style(selected))
+	UiTheme.apply_slot(panel, selected)
 	panel.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	var v := VBoxContainer.new()
 	v.add_theme_constant_override("separation", 4)
@@ -438,7 +459,7 @@ func _inventory_cell(w: Dictionary) -> PanelContainer:
 
 func _slot_card(title: String, weapon_id: String, _slot_key: String) -> PanelContainer:
 	var panel := PanelContainer.new()
-	panel.add_theme_stylebox_override("panel", UiTheme.panel_style(Color(0.35, 0.85, 1.0, 0.55)))
+	UiTheme.apply_panel(panel)
 	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var h := HBoxContainer.new()
 	h.add_theme_constant_override("separation", 12)
@@ -491,10 +512,7 @@ func _build_settings_modal() -> void:
 	var center := CenterContainer.new()
 	center.set_anchors_preset(Control.PRESET_FULL_RECT)
 	settings_modal.add_child(center)
-	var panel := PanelContainer.new()
-	panel.add_theme_stylebox_override("panel", UiTheme.panel_style())
-	panel.custom_minimum_size = Vector2(520, 460)
-	center.add_child(panel)
+	var panel := _mount_skinned_panel(center, false, Vector2(520, 460))
 	var v := VBoxContainer.new()
 	v.add_theme_constant_override("separation", 12)
 	panel.add_child(v)
@@ -574,14 +592,11 @@ func _open_detail(id: String) -> void:
 		return
 	for c in detail_modal.get_children():
 		c.queue_free()
-	detail_modal.color = Color(0.01, 0.03, 0.06, 0.82)
+	detail_modal.color = Color(UiTheme.C_DIM.r, UiTheme.C_DIM.g, UiTheme.C_DIM.b, 0.82)
 	var center := CenterContainer.new()
 	center.set_anchors_preset(Control.PRESET_FULL_RECT)
 	detail_modal.add_child(center)
-	var panel := PanelContainer.new()
-	panel.add_theme_stylebox_override("panel", UiTheme.panel_style())
-	panel.custom_minimum_size = Vector2(520, 400)
-	center.add_child(panel)
+	var panel := _mount_skinned_panel(center, false, Vector2(520, 400))
 	var body := HBoxContainer.new()
 	body.add_theme_constant_override("separation", 16)
 	panel.add_child(body)

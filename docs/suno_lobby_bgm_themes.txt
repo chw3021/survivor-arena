@@ -1,0 +1,52 @@
+# Survivor Arena - Lobby BGM by Theme (Suno)
+
+stone = 기존 `docs/suno_lobby_bgm.txt` / `assets/bgm/bgm_lobby.wav` 그대로 사용.
+아래는 grunge / clean / simple 로비용 3개.
+
+
+## 1) grunge (꼬질 귀여움 / Isaac-ish)
+
+파일 제안: `bgm_lobby_grunge.wav`
+
+Style tags:
+quirky indie rock, dusty tape, playful minor key, toy piano plinks, fuzzy bass, soft kick, handclap groove, sketchbook cute-dark, lo-fi rock, whimsical but grimy, game menu loop, no vocals
+
+Prompt (paste into Suno):
+Cute-grimy lobby theme like a sketchbook dungeon, midtempo bouncy groove with dusty drum kit, fuzzy bass bounce, tiny toy-piano and music-box plinks over crunchy indie guitar, playful but slightly spooky mood, parchment and ink vibe, warm imperfect mix, loop-friendly instrumental, no lyrics, 108 BPM feel
+
+Negative / avoid:
+heavy metal, jump-scare horror drones, pure chiptune, EDM drop, sad piano ballad, clean polished pop, trap 808 wall
+
+Title idea: Torn Paper Lobby
+
+
+## 2) clean (클린 캐주얼)
+
+파일 제안: `bgm_lobby_clean.wav`
+
+Style tags:
+bright synth pop, casual mobile game, clean electric piano, punchy pop drums, shiny bass, uplifting major key, polished mix, breezy energy, menu music, no vocals
+
+Prompt (paste into Suno):
+Clean casual mobile-game lobby theme, bright major-key synth pop, punchy light drums, glossy bass, soft electric-piano chords, short cheerful lead hooks, airy and polished, friendly high-energy without aggression, loop-friendly instrumental for a clear modern UI menu, no lyrics, 122 BPM feel
+
+Negative / avoid:
+dark industrial, horror ambience, metal distortion, lo-fi muffling, slow ballad, chiptune 8-bit only, hyperpop scream vocals
+
+Title idea: Quiet Forest Ready Room
+
+
+## 3) simple (심플 오렌지)
+
+파일 제안: `bgm_lobby_simple.wav`
+
+Style tags:
+warm acoustic pop, ukulele strum, soft claps, cozy bass, sunny indie, simple melody, cream and orange mood, friendly casual menu, light percussion, no vocals
+
+Prompt (paste into Suno):
+Simple cozy lobby theme with warm acoustic guitar and ukulele strums, soft claps and light kick, round friendly bass, sunny short melody hooks, cream-and-orange casual kit vibe, soft and bubbly but not childish cartoon, clean sparse arrangement, loop-friendly instrumental, no lyrics, 112 BPM feel
+
+Negative / avoid:
+heavy rock distortion, dark synthwave, horror drones, dense EDM, trap hats, orchestral trailer, chiptune
+
+Title idea: Orange Frame Lounge
