@@ -51,16 +51,7 @@ func _ready() -> void:
 
 func _style_panels() -> void:
 	for panel in [top_left, top_right, status_panel]:
-		var box := StyleBoxFlat.new()
-		box.bg_color = Color(0.07, 0.09, 0.12, 0.82)
-		box.set_corner_radius_all(10)
-		box.content_margin_left = 12
-		box.content_margin_right = 12
-		box.content_margin_top = 10
-		box.content_margin_bottom = 10
-		box.border_color = Color(1, 1, 1, 0.08)
-		box.set_border_width_all(1)
-		panel.add_theme_stylebox_override("panel", box)
+		panel.add_theme_stylebox_override("panel", UiTheme.panel_style())
 
 
 func _apply_ui_font() -> void:

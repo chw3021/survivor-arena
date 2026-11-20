@@ -38,39 +38,39 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-color = Color(0.02, 0.04, 0.07, 0.55)
+color = Color(0.01, 0.04, 0.08, 0.62)
 
 [node name="Layout" type="HBoxContainer" parent="Root"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 24.0
-offset_top = 24.0
-offset_right = -24.0
-offset_bottom = -24.0
+offset_left = 28.0
+offset_top = 28.0
+offset_right = -28.0
+offset_bottom = -28.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_constants/separation = 18
+theme_override_constants/separation = 20
 
 [node name="SideBar" type="PanelContainer" parent="Root/Layout"]
-custom_minimum_size = Vector2(220, 0)
+custom_minimum_size = Vector2(236, 0)
 layout_mode = 2
 size_flags_vertical = 3
 
 [node name="SideVBox" type="VBoxContainer" parent="Root/Layout/SideBar"]
 layout_mode = 2
-theme_override_constants/separation = 14
+theme_override_constants/separation = 12
 
 [node name="Brand" type="Label" parent="Root/Layout/SideBar/SideVBox"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 26
+theme_override_font_sizes/font_size = 28
 text = "SURVIVOR
 ARENA"
 
 [node name="Tagline" type="Label" parent="Root/Layout/SideBar/SideVBox"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.75, 0.82, 0.88, 1)
+theme_override_colors/font_color = Color(0.7, 0.82, 0.9, 1)
 theme_override_font_sizes/font_size = 13
 autowrap_mode = 3
 text = "납치된 고양이를 되찾아라"
@@ -81,14 +81,19 @@ size_flags_vertical = 3
 theme_override_constants/separation = 8
 
 [node name="PlayBtn" type="Button" parent="Root/Layout/SideBar/SideVBox/NavBox"]
-custom_minimum_size = Vector2(0, 48)
+custom_minimum_size = Vector2(0, 46)
 layout_mode = 2
 text = "출격 준비"
 
 [node name="EquipBtn" type="Button" parent="Root/Layout/SideBar/SideVBox/NavBox"]
-custom_minimum_size = Vector2(0, 48)
+custom_minimum_size = Vector2(0, 46)
 layout_mode = 2
 text = "무장 정비"
+
+[node name="CodexBtn" type="Button" parent="Root/Layout/SideBar/SideVBox/NavBox"]
+custom_minimum_size = Vector2(0, 46)
+layout_mode = 2
+text = "적 특성"
 
 [node name="SoundBtn" type="Button" parent="Root/Layout/SideBar/SideVBox"]
 custom_minimum_size = Vector2(0, 42)
@@ -117,6 +122,15 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 
+[node name="CodexPage" type="Control" parent="Root/Layout/MainPane"]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
 [node name="SettingsModal" type="ColorRect" parent="Root"]
 visible = false
 z_index = 30
@@ -127,7 +141,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 0
-color = Color(0.02, 0.03, 0.04, 0.78)
+color = Color(0.01, 0.03, 0.06, 0.82)
 
 [node name="DetailModal" type="ColorRect" parent="Root"]
 visible = false
@@ -139,4 +153,4 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 0
-color = Color(0.02, 0.03, 0.04, 0.78)
+color = Color(0.01, 0.03, 0.06, 0.82)

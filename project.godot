@@ -31,7 +31,7 @@ window/stretch/aspect="expand"
 
 [gui]
 
-theme/custom_font="res://fonts/BlackHanSans-Regular.ttf"
+theme/custom_font="res://fonts/NotoSansKR-Regular.ttf"
 
 [input]
 

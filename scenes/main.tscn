@@ -17,11 +17,6 @@ z_index = -10
 color = Color(0.16, 0.19, 0.22, 1)
 polygon = PackedVector2Array(-2400, -2400, 2400, -2400, 2400, 2400, -2400, 2400)
 
-[node name="GridHint" type="Polygon2D" parent="Arena"]
-z_index = -9
-color = Color(0.2, 0.24, 0.28, 1)
-polygon = PackedVector2Array(-40, -40, 40, -40, 40, 40, -40, 40)
-
 [node name="Player" parent="." instance=ExtResource("2_player")]
 position = Vector2(0, 0)
 

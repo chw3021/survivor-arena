@@ -1,6 +1,5 @@
 extends Node2D
 
-const GRID_CELL := 80.0
 const FLOOR_MARGIN := 160.0
 
 @onready var player: CharacterBody2D = $Player
@@ -8,7 +7,6 @@ const FLOOR_MARGIN := 160.0
 @onready var hud: CanvasLayer = $HUD
 @onready var camera: Camera2D = $Player/Camera2D
 @onready var floor_poly: Polygon2D = $Arena/Floor
-@onready var grid_hint: Polygon2D = $Arena/GridHint
 
 
 func _ready() -> void:
@@ -36,13 +34,6 @@ func _keep_floor_under_player() -> void:
 		p + Vector2(half.x, -half.y),
 		p + Vector2(half.x, half.y),
 		p + Vector2(-half.x, half.y),
-	])
-	var snap := Vector2(floorf(p.x / GRID_CELL) * GRID_CELL, floorf(p.y / GRID_CELL) * GRID_CELL)
-	grid_hint.polygon = PackedVector2Array([
-		snap + Vector2(-40, -40),
-		snap + Vector2(40, -40),
-		snap + Vector2(40, 40),
-		snap + Vector2(-40, 40),
 	])
 
 
