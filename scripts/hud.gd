@@ -12,6 +12,7 @@ extends CanvasLayer
 var player: Node
 var _offer_ids: Array[String] = []
 var _card_buttons: Array[Button] = []
+var _ui_font: Font
 
 
 func setup(p: Node) -> void:
@@ -30,11 +31,23 @@ func setup(p: Node) -> void:
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	_apply_ui_font()
 	help_label.text = "WASD 이동 | 방향키 공격 | Space 대시 | Q 무기 | E 액티브(1개) | 5렙 패시브 카드"
 	overlay.visible = false
 	passive_select.visible = false
 	passive_title.text = "패시브 강화 — 카드 1개를 선택하세요 (1 / 2 / 3)"
 	_ensure_card_buttons()
+
+
+func _apply_ui_font() -> void:
+	# Web default font often lacks Hangul glyphs; force bundled KR font.
+	if ResourceLoader.exists("res://fonts/Jua-Regular.ttf"):
+		_ui_font = load("res://fonts/Jua-Regular.ttf")
+	if _ui_font == null:
+		return
+	for node in [info_label, help_label, overlay_label, passive_title]:
+		if node:
+			node.add_theme_font_override("font", _ui_font)
 
 
 func _ensure_card_buttons() -> void:
@@ -47,6 +60,9 @@ func _ensure_card_buttons() -> void:
 		btn.clip_text = false
 		btn.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		btn.alignment = HORIZONTAL_ALIGNMENT_CENTER
+		if _ui_font:
+			btn.add_theme_font_override("font", _ui_font)
+			btn.add_theme_font_size_override("font_size", 16)
 		btn.pressed.connect(_on_card_pressed.bind(i))
 		card_row.add_child(btn)
 		_card_buttons.append(btn)
