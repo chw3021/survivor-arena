@@ -506,14 +506,14 @@ func _build_settings_modal() -> void:
 	theme_grid.add_theme_constant_override("v_separation", 8)
 	theme_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	for tid in UiTheme.THEME_ORDER:
-		var tb := _make_btn(str(UiTheme.THEME_NAMES[tid]), Vector2(0, 44))
+		var theme_key := str(tid)
+		var tb := _make_btn(str(UiTheme.THEME_NAMES[theme_key]), Vector2(0, 44))
 		tb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		var active := tid == UiTheme.theme_id
+		var active: bool = theme_key == UiTheme.theme_id
 		UiTheme.style_button(tb, active)
-		var captured: String = tid
 		tb.pressed.connect(func() -> void:
-			Loadout.set_ui_theme(captured)
-			UiTheme.apply_theme(captured, true)
+			Loadout.set_ui_theme(theme_key)
+			UiTheme.apply_theme(theme_key, true)
 		)
 		theme_grid.add_child(tb)
 	v.add_child(theme_grid)
