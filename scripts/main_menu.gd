@@ -181,10 +181,7 @@ func _build_play_page() -> void:
 		UiTheme.apply_font(blurb, 13, UiTheme.C_MUTED, "regular")
 		info.add_child(blurb)
 		var go := _make_btn("출격", Vector2(120, 44))
-		UiTheme.apply_font(go, 16, UiTheme.C_TEXT, "semibold")
-		go.add_theme_stylebox_override("normal", UiTheme.button_style("cta"))
-		go.add_theme_stylebox_override("hover", UiTheme.button_style("cta"))
-		go.add_theme_stylebox_override("pressed", UiTheme.button_style("pressed"))
+		UiTheme.style_cta_button(go)
 		var captured: String = id
 		go.pressed.connect(func() -> void: _start_run(captured))
 		row.add_child(go)

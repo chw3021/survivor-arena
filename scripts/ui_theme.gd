@@ -121,24 +121,25 @@ func _apply_palette(id: String) -> void:
 			decor_enabled = true
 			decor_size = 30
 		THEME_CLEAN:
-			C_ACCENT = Color(0.25, 0.7, 0.95, 1.0)
-			C_ACCENT_WARM = Color(1.0, 0.78, 0.2, 1.0)
-			C_PANEL = Color(0.14, 0.16, 0.2, 0.9)
-			C_PANEL_INNER = Color(0.18, 0.2, 0.25, 0.95)
-			C_BTN = Color(0.22, 0.26, 0.32, 1.0)
-			C_BTN_HOVER = Color(0.3, 0.36, 0.44, 1.0)
-			C_BTN_ACTIVE = Color(0.18, 0.45, 0.7, 1.0)
-			C_BTN_CTA = Color(1.0, 0.82, 0.2, 1.0)
-			C_BTN_CTA_BORDER = Color(0.75, 0.55, 0.1, 1.0)
-			C_TEXT = Color(0.98, 0.99, 1.0, 1.0)
-			C_MUTED = Color(0.78, 0.84, 0.9, 1.0)
-			C_OUTLINE = Color(0.05, 0.06, 0.08, 0.8)
-			C_BORDER = Color(0.45, 0.55, 0.68, 0.95)
-			C_SLOT = Color(0.2, 0.24, 0.3, 0.98)
-			C_SLOT_SEL = Color(0.18, 0.38, 0.55, 0.98)
-			C_DIM = Color(0.12, 0.1, 0.08, 0.4)
+			# 오렌지 캐주얼 BG 위: 따뜻한 다크 카드 + 노란 CTA (흰 글자/흰 버튼 금지)
+			C_ACCENT = Color(1.0, 0.78, 0.2, 1.0)
+			C_ACCENT_WARM = Color(1.0, 0.7, 0.25, 1.0)
+			C_PANEL = Color(0.16, 0.12, 0.1, 0.92)
+			C_PANEL_INNER = Color(0.2, 0.15, 0.12, 0.95)
+			C_BTN = Color(0.22, 0.16, 0.12, 1.0)
+			C_BTN_HOVER = Color(0.32, 0.24, 0.16, 1.0)
+			C_BTN_ACTIVE = Color(0.85, 0.55, 0.12, 1.0)
+			C_BTN_CTA = Color(1.0, 0.82, 0.18, 1.0)
+			C_BTN_CTA_BORDER = Color(0.72, 0.48, 0.08, 1.0)
+			C_TEXT = Color(1.0, 0.98, 0.94, 1.0)
+			C_MUTED = Color(0.9, 0.82, 0.7, 1.0)
+			C_OUTLINE = Color(0.08, 0.05, 0.03, 0.85)
+			C_BORDER = Color(0.95, 0.7, 0.28, 0.95)
+			C_SLOT = Color(0.2, 0.15, 0.12, 0.96)
+			C_SLOT_SEL = Color(0.35, 0.24, 0.12, 0.98)
+			C_DIM = Color(0.18, 0.1, 0.05, 0.45)
 			corner_radius = 16
-			border_width = 2
+			border_width = 3
 			bg_path = "res://assets/ui/menu_bg_clean.jpg"
 			style_mode = "texture"
 			skin_dir = SKIN_ROOT + "clean"
@@ -429,20 +430,8 @@ func slot_style(selected: bool = false) -> StyleBox:
 	return box
 
 
+## StyleBoxTexture.modulate 는 웹에서 버튼에 거의 안 먹어서, 버튼은 항상 Flat.
 func button_style(kind: String = "normal") -> StyleBox:
-	if style_mode == "texture":
-		var tex_box := _texture_box("button_9slice.png", 16, 12, 16, 12)
-		if tex_box != null:
-			match kind:
-				"hover":
-					tex_box.modulate = C_BTN_HOVER
-				"active", "pressed":
-					tex_box.modulate = C_BTN_ACTIVE
-				"cta":
-					tex_box.modulate = C_BTN_CTA
-				_:
-					tex_box.modulate = C_BTN
-			return tex_box
 	var box := StyleBoxFlat.new()
 	box.set_corner_radius_all(maxi(10, corner_radius - 2))
 	box.content_margin_left = 16
@@ -469,9 +458,36 @@ func button_style(kind: String = "normal") -> StyleBox:
 	return box
 
 
+func contrast_on(bg: Color) -> Color:
+	if bg.get_luminance() > 0.55:
+		return Color(0.14, 0.11, 0.08, 1.0)
+	return Color(0.99, 0.98, 0.96, 1.0)
+
+
+func button_label_color(kind: String = "normal") -> Color:
+	match kind:
+		"hover":
+			return contrast_on(C_BTN_HOVER)
+		"active", "pressed":
+			return contrast_on(C_BTN_ACTIVE)
+		"cta":
+			return contrast_on(C_BTN_CTA)
+		_:
+			return contrast_on(C_BTN)
+
+
 func style_button(b: Button, active: bool = false) -> void:
-	apply_font(b, 16, C_TEXT, "semibold")
-	b.add_theme_stylebox_override("normal", button_style("active" if active else "normal"))
+	var kind := "active" if active else "normal"
+	apply_font(b, 16, button_label_color(kind), "semibold")
+	b.add_theme_stylebox_override("normal", button_style(kind))
 	b.add_theme_stylebox_override("hover", button_style("hover"))
 	b.add_theme_stylebox_override("pressed", button_style("pressed"))
 	b.add_theme_stylebox_override("focus", button_style("hover"))
+
+
+func style_cta_button(b: Button) -> void:
+	apply_font(b, 16, button_label_color("cta"), "semibold")
+	b.add_theme_stylebox_override("normal", button_style("cta"))
+	b.add_theme_stylebox_override("hover", button_style("cta"))
+	b.add_theme_stylebox_override("pressed", button_style("pressed"))
+	b.add_theme_stylebox_override("focus", button_style("cta"))
