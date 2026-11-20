@@ -16,11 +16,8 @@ func _ready() -> void:
 
 
 func _apply_font() -> void:
-	if not ResourceLoader.exists("res://fonts/Jua-Regular.ttf"):
-		return
-	var font: Font = load("res://fonts/Jua-Regular.ttf")
-	$Center/VBox/Title.add_theme_font_override("font", font)
-	tip.add_theme_font_override("font", font)
+	UiTheme.apply_font($Center/VBox/Title, 42)
+	UiTheme.apply_font(tip, 16)
 
 
 func _process(delta: float) -> void:

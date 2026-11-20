@@ -318,17 +318,171 @@ def pickup_sfx() -> list[float]:
     return finalize(delay_echo(layered, 0.05, feedback=0.2, mix_amt=0.18))
 
 
+# --- weapon-specific shots / reloads ------------------------------------
+
+
+def shot_pistol() -> list[float]:
+    # snappy handgun: sharp click + short body
+    click = highpass(tone(2800, 0.014, 0.6, "triangle", a=0.0, d=0.3, s=0.08, r=0.55), 1400)
+    body = lowpass(sweep(340, 90, 0.08, 0.62, "sine", curve=1.7, a=0.0, d=0.25, s=0.2, r=0.5), 1000)
+    crack = highpass(noise_burst(0.05, 0.4, a=0.0, d=0.2, s=0.12, r=0.6), 2200)
+    return finalize(early_reverb(mix(click, body, crack, vols=[1.0, 1.0, 0.7]), 0.1))
+
+
+def shot_shotgun() -> list[float]:
+    # fat boom + pellet hiss
+    boom = lowpass(sweep(180, 45, 0.22, 0.85, "sine", curve=1.6, a=0.0, d=0.18, s=0.3, r=0.55), 280)
+    body = lowpass(sweep(420, 90, 0.14, 0.5, "triangle", curve=1.3), 800)
+    pellets = highpass(noise_burst(0.16, 0.55, a=0.0, d=0.12, s=0.3, r=0.6), 1200)
+    pellets = lowpass(pellets, 7500)
+    return finalize(early_reverb(mix(boom, body, pellets, vols=[1.0, 0.8, 0.9]), 0.18))
+
+
+def shot_assault() -> list[float]:
+    # tight rifle crack for full-auto feel
+    click = highpass(tone(1900, 0.012, 0.5, "triangle", a=0.0, d=0.35, s=0.05, r=0.5), 1100)
+    body = lowpass(sweep(400, 120, 0.06, 0.55, "sine", curve=1.4, a=0.0, d=0.3, s=0.15, r=0.5), 1200)
+    crack = highpass(noise_burst(0.04, 0.35, a=0.0, d=0.3, s=0.08, r=0.55), 2000)
+    return finalize(mix(click, body, crack, vols=[1.0, 0.95, 0.75]))
+
+
+def shot_sniper() -> list[float]:
+    # heavy long report + echo
+    boom = lowpass(sweep(220, 50, 0.28, 0.8, "sine", curve=1.7, a=0.0, d=0.15, s=0.35, r=0.55), 350)
+    crack = highpass(noise_burst(0.1, 0.65, a=0.0, d=0.12, s=0.2, r=0.65), 1500)
+    ring = sweep(1400, 280, 0.18, 0.28, "triangle", curve=1.2, a=0.0, d=0.2, s=0.25, r=0.55)
+    layered = mix(boom, crack, ring, vols=[1.0, 0.9, 0.55])
+    return finalize(delay_echo(early_reverb(layered, 0.2), 0.055, feedback=0.22, mix_amt=0.2))
+
+
+def shot_mg() -> list[float]:
+    # thick short chatter for MG
+    thump = lowpass(sweep(260, 80, 0.05, 0.7, "sine", curve=1.5, a=0.0, d=0.35, s=0.1, r=0.5), 700)
+    grit = highpass(noise_burst(0.035, 0.4, a=0.0, d=0.35, s=0.08, r=0.5), 900)
+    grit = lowpass(grit, 5000)
+    return finalize(mix(thump, grit, vols=[1.0, 0.85]))
+
+
+def shot_flame() -> list[float]:
+    # continuous whoosh / burn spit
+    roar = lowpass(noise_burst(0.14, 0.55, a=0.02, d=0.15, s=0.55, r=0.35), 1800)
+    roar = highpass(roar, 120)
+    flutter_n = int(RATE * 0.14)
+    flutter = [0.0] * flutter_n
+    phase = 0.0
+    for i in range(flutter_n):
+        freq = 55.0 + 25.0 * math.sin(i / RATE * 28.0)
+        flutter[i] = osc("saw", phase) * 0.18 * env_adsr(i, flutter_n, 0.05, 0.2, 0.55, 0.35)
+        phase = (phase + freq / RATE) % 1.0
+    flutter = lowpass(flutter, 900)
+    spit = highpass(noise_burst(0.04, 0.3, a=0.0, d=0.25, s=0.1, r=0.55), 2500)
+    return finalize(mix(roar, flutter, spit, vols=[1.0, 0.7, 0.45]))
+
+
+def shot_taser() -> list[float]:
+    # close-range zap crack
+    zap = sweep(2200, 380, 0.07, 0.48, "saw", curve=1.2, a=0.0, d=0.25, s=0.2, r=0.5)
+    buzz_n = int(RATE * 0.1)
+    buzz = [0.0] * buzz_n
+    phase = 0.0
+    for i in range(buzz_n):
+        gate = 1.0 if (i // max(1, int(RATE * 0.003))) % 2 == 0 else 0.2
+        buzz[i] = osc("square", phase) * 0.32 * gate * env_adsr(i, buzz_n, 0.0, 0.15, 0.5, 0.4)
+        phase = (phase + (110.0 + 30.0 * math.sin(i / RATE * 50.0)) / RATE) % 1.0
+    spark = highpass(noise_burst(0.03, 0.35, a=0.0, d=0.4, s=0.05, r=0.5), 2800)
+    return finalize(delay_echo(mix(zap, buzz, spark, vols=[1.0, 0.8, 0.6]), 0.012, 0.2, 0.12))
+
+
+def shot_emp() -> list[float]:
+    # soft launch + electric bloom
+    thump = lowpass(sweep(160, 55, 0.12, 0.55, "sine", curve=1.4, a=0.0, d=0.2, s=0.3, r=0.5), 400)
+    bloom = sweep(900, 220, 0.16, 0.35, "triangle", curve=0.9, a=0.02, d=0.2, s=0.35, r=0.45)
+    crackle = highpass(noise_burst(0.1, 0.28, a=0.05, d=0.2, s=0.25, r=0.5), 1800)
+    return finalize(early_reverb(mix(thump, bloom, crackle, vols=[1.0, 0.75, 0.7]), 0.16))
+
+
+def reload_pistol() -> list[float]:
+    # mag out → mag in → slide
+    out_c = highpass(tone(1800, 0.025, 0.32, "triangle", a=0.0, d=0.3, s=0.1, r=0.5), 900)
+    mag = lowpass(mix(
+        tone(220, 0.05, 0.35, "sine", a=0.0, d=0.3, s=0.2, r=0.5),
+        highpass(noise_burst(0.04, 0.15, a=0.0, d=0.3, s=0.1, r=0.5), 1200),
+    ), 2400)
+    slide = highpass(sweep(1600, 700, 0.06, 0.3, "triangle", curve=0.8), 600)
+    gap = [0.0] * int(RATE * 0.04)
+    return finalize(out_c + gap + mag + gap + slide)
+
+
+def reload_shotgun() -> list[float]:
+    # pump: forward clack + back slide
+    pump1 = mix(
+        tone(180, 0.04, 0.4, "sine", a=0.0, d=0.3, s=0.15, r=0.5),
+        highpass(tone(900, 0.03, 0.28, "triangle", a=0.0, d=0.35, s=0.08, r=0.5), 500),
+    )
+    slide = lowpass(highpass(noise_burst(0.1, 0.28, a=0.02, d=0.2, s=0.35, r=0.45), 400), 3500)
+    pump2 = highpass(tone(1200, 0.035, 0.35, "triangle", a=0.0, d=0.3, s=0.1, r=0.55), 700)
+    gap = [0.0] * int(RATE * 0.055)
+    return finalize(early_reverb(pump1 + gap + mix(slide, pump2), 0.1))
+
+
+def reload_rifle() -> list[float]:
+    # AR mag swap + bolt
+    click = highpass(tone(2400, 0.02, 0.35, "triangle", a=0.0, d=0.35, s=0.08, r=0.5), 1000)
+    mag = lowpass(sweep(500, 180, 0.1, 0.4, "saw", curve=0.9, a=0.02, d=0.25, s=0.35, r=0.4), 2200)
+    bolt = mix(
+        tone(320, 0.04, 0.35, "sine", a=0.0, d=0.3, s=0.15, r=0.5),
+        highpass(tone(1500, 0.025, 0.28, "triangle", a=0.0, d=0.35, s=0.08, r=0.5), 800),
+    )
+    gap = [0.0] * int(RATE * 0.04)
+    return finalize(click + gap + mag + gap + bolt)
+
+
+def reload_heavy() -> list[float]:
+    # belt / heavy mag clunk (sniper / MG)
+    clunk = lowpass(sweep(140, 60, 0.12, 0.55, "sine", curve=1.2, a=0.0, d=0.2, s=0.35, r=0.5), 500)
+    scrape = lowpass(highpass(noise_burst(0.16, 0.28, a=0.05, d=0.2, s=0.4, r=0.4), 500), 2800)
+    latch = highpass(tone(700, 0.05, 0.4, "triangle", a=0.0, d=0.25, s=0.15, r=0.55), 400)
+    gap = [0.0] * int(RATE * 0.06)
+    return finalize(early_reverb(clunk + gap + scrape + gap + latch, 0.12))
+
+
+def reload_energy() -> list[float]:
+    # capacitor charge + soft click (taser / EMP)
+    charge = sweep(180, 920, 0.18, 0.35, "sine", curve=0.85, a=0.05, d=0.15, s=0.55, r=0.35)
+    hum = tone(110, 0.2, 0.18, "sine", a=0.05, d=0.2, s=0.5, r=0.35)
+    spark = highpass(noise_burst(0.05, 0.22, a=0.0, d=0.3, s=0.1, r=0.55), 2200)
+    click = highpass(tone(1600, 0.03, 0.28, "triangle", a=0.0, d=0.35, s=0.08, r=0.5), 900)
+    return finalize(delay_echo(mix(charge, hum, offset(spark, 0.12), offset(click, 0.16), vols=[1.0, 0.7, 0.6, 0.8]), 0.02, 0.18, 0.12))
+
+
 def main() -> None:
     os.makedirs(OUT, exist_ok=True)
-    write_wav("gunshot.wav", gunshot())
-    write_wav("reload.wav", reload_sfx())
-    write_wav("dash.wav", dash_sfx())
-    write_wav("hurt.wav", hurt_sfx())
-    write_wav("hit.wav", hit_sfx())
-    write_wav("weapon_switch.wav", weapon_switch())
-    write_wav("explosion.wav", explosion_sfx())
-    write_wav("electric.wav", electric_sfx())
-    write_wav("pickup.wav", pickup_sfx())
+    common = {
+        "gunshot.wav": gunshot,
+        "reload.wav": reload_sfx,
+        "dash.wav": dash_sfx,
+        "hurt.wav": hurt_sfx,
+        "hit.wav": hit_sfx,
+        "weapon_switch.wav": weapon_switch,
+        "explosion.wav": explosion_sfx,
+        "electric.wav": electric_sfx,
+        "pickup.wav": pickup_sfx,
+        "shot_pistol.wav": shot_pistol,
+        "shot_shotgun.wav": shot_shotgun,
+        "shot_assault.wav": shot_assault,
+        "shot_sniper.wav": shot_sniper,
+        "shot_mg.wav": shot_mg,
+        "shot_flame.wav": shot_flame,
+        "shot_taser.wav": shot_taser,
+        "shot_emp.wav": shot_emp,
+        "reload_pistol.wav": reload_pistol,
+        "reload_shotgun.wav": reload_shotgun,
+        "reload_rifle.wav": reload_rifle,
+        "reload_heavy.wav": reload_heavy,
+        "reload_energy.wav": reload_energy,
+    }
+    for name, fn in common.items():
+        write_wav(name, fn())
     print("done (sfx only; bgm stays at assets/bgm/arena.wav)")
 
 

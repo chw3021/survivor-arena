@@ -74,10 +74,7 @@ func _setup_ammo_label() -> void:
 	ammo_label.position = Vector2(-48, -52)
 	ammo_label.size = Vector2(96, 22)
 	ammo_label.z_index = 20
-	if ResourceLoader.exists("res://fonts/Jua-Regular.ttf"):
-		ammo_label.add_theme_font_override("font", load("res://fonts/Jua-Regular.ttf"))
-	ammo_label.add_theme_font_size_override("font_size", 15)
-	ammo_label.add_theme_color_override("font_color", Color(0.95, 0.97, 1.0, 0.95))
+	UiTheme.apply_font(ammo_label, 15, Color(0.95, 0.97, 1.0, 0.95))
 	ammo_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.75))
 	ammo_label.add_theme_constant_override("outline_size", 4)
 	add_child(ammo_label)
@@ -327,10 +324,35 @@ func _attack(dir: Vector2) -> void:
 
 
 func _on_attack_fired(weapon: Dictionary) -> void:
-	Sfx.play("gunshot", randf_range(0.92, 1.1), -2.0)
-	var pitch_type: int = int(weapon["dmg_type"])
-	if pitch_type == DamageTypes.Type.ELECTRIC:
-		Sfx.play("electric", 1.2, -10.0)
+	var shot_key := WeaponCatalog.shot_sfx(weapon)
+	var pitch := randf_range(0.94, 1.08)
+	var vol_db := -2.0
+	var gap := 35
+	match str(weapon.get("id", "")):
+		"flamethrower":
+			pitch = randf_range(0.9, 1.15)
+			vol_db = -8.0
+			gap = 55
+		"machine_gun":
+			pitch = randf_range(0.92, 1.1)
+			vol_db = -6.0
+			gap = 28
+		"assault_rifle":
+			vol_db = -4.0
+			gap = 30
+		"sniper":
+			pitch = randf_range(0.9, 1.02)
+			vol_db = 1.0
+			gap = 80
+		"shotgun":
+			pitch = randf_range(0.88, 1.05)
+			vol_db = 0.0
+			gap = 60
+		"taser", "emp_launcher":
+			pitch = randf_range(0.95, 1.12)
+			vol_db = -3.0
+			gap = 40
+	Sfx.play(shot_key, pitch, vol_db, gap)
 
 	# 폭발탄약 / EMP충격파
 	if passives.has("explosive_rounds"):
@@ -377,6 +399,17 @@ func _spawn_bullet(dir: Vector2, weapon: Dictionary) -> void:
 	get_parent().add_child(bolt)
 	bolt.global_position = global_position + dir * 24.0
 	bolt.rotation = dir.angle()
+	var trail_w := 8.0
+	match dtype:
+		DamageTypes.Type.PIERCE:
+			trail_w = 7.0
+		DamageTypes.Type.EXPLOSION:
+			trail_w = 12.0
+		DamageTypes.Type.ELECTRIC:
+			trail_w = 10.0
+		_:
+			trail_w = 8.0
+	Vfx.attach_trail(bolt, color, trail_w, 12)
 
 	var damage := float(weapon["damage"])
 	var reach := float(weapon["range"])
@@ -384,7 +417,7 @@ func _spawn_bullet(dir: Vector2, weapon: Dictionary) -> void:
 	var pierce_left: int = int(weapon["pierce"])
 	var traveled := 0.0
 	var hit_ids: Dictionary = {}
-	var trail_acc := 0.0
+	var streak_acc := 0.0
 
 	bolt.body_entered.connect(func(body: Node) -> void:
 		if not is_instance_valid(bolt):
@@ -407,10 +440,10 @@ func _spawn_bullet(dir: Vector2, weapon: Dictionary) -> void:
 		var step: float = speed / float(Engine.physics_ticks_per_second)
 		bolt.global_position += dir * step
 		traveled += step
-		trail_acc += step
-		if trail_acc >= 18.0:
-			trail_acc = 0.0
-			Vfx.trail_dot(bolt.global_position, color)
+		streak_acc += step
+		if streak_acc >= 22.0:
+			streak_acc = 0.0
+			Vfx.trail_streak(bolt.global_position, dir, color, 16.0)
 		await get_tree().physics_frame
 
 	if is_instance_valid(bolt):
@@ -437,10 +470,15 @@ func _cone_attack(dir: Vector2, damage: float, reach: float, spread: float, dtyp
 func _beam_attack(dir: Vector2, damage: float, reach: float, dtype: int, stun: float) -> void:
 	var color: Color = DamageTypes.TYPE_COLORS[dtype]
 	Vfx.muzzle_flash(global_position + dir * 18.0, dir, color)
-	for i in range(4):
-		Vfx.trail_dot(global_position + dir * (reach * (0.2 + i * 0.2)), color)
+	Vfx.trail_streak(global_position + dir * (reach * 0.55), dir, color, reach * 0.9)
+	for i in range(3):
+		Vfx.trail_streak(
+			global_position + dir * (reach * (0.25 + i * 0.22)) + dir.orthogonal() * randf_range(-6.0, 6.0),
+			dir,
+			color,
+			reach * 0.2
+		)
 	Vfx.burst(global_position + dir * (reach * 0.5), color, 8, 70.0, 0.18)
-	Sfx.play("electric", 1.15)
 	for body in get_tree().get_nodes_in_group("enemies"):
 		if not is_instance_valid(body):
 			continue
@@ -468,7 +506,9 @@ func _emp_orb_attack(dir: Vector2, damage: float, reach: float, speed: float, ao
 	orb.add_child(Vfx.projectile_visual(dtype, "orb"))
 	get_parent().add_child(orb)
 	orb.global_position = global_position + dir * 22.0
-	Vfx.muzzle_flash(orb.global_position, dir, DamageTypes.TYPE_COLORS[dtype])
+	var orb_color: Color = DamageTypes.TYPE_COLORS[dtype]
+	Vfx.muzzle_flash(orb.global_position, dir, orb_color)
+	Vfx.attach_trail(orb, orb_color, 14.0, 14)
 
 	var traveled := 0.0
 	var exploded := false
@@ -479,7 +519,7 @@ func _emp_orb_attack(dir: Vector2, damage: float, reach: float, speed: float, ao
 		var pos := orb.global_position
 		orb.queue_free()
 		_explode_at(pos, aoe, damage, dtype, 40.0, true)
-		Sfx.play("electric", 0.85)
+		Sfx.play("electric", 0.9, -2.0, 80)
 
 	orb.body_entered.connect(func(body: Node) -> void:
 		if body.is_in_group("enemies"):
@@ -644,9 +684,13 @@ func _start_reload(duration: float) -> void:
 	reload_left = duration
 	ammo_left = 0
 	var w := _current_weapon()
-	# Heavy mags (sniper / MG) get a lower, longer reload feel.
-	var pitch := 0.82 if float(w["reload"]) >= 1.3 else 1.0
-	Sfx.play("reload", pitch * randf_range(0.97, 1.04), 0.0)
+	var reload_key := WeaponCatalog.reload_sfx(w)
+	var pitch := randf_range(0.96, 1.05)
+	if reload_key == "reload_heavy":
+		pitch = randf_range(0.85, 0.95)
+	elif reload_key == "reload_energy":
+		pitch = randf_range(0.98, 1.08)
+	Sfx.play(reload_key, pitch, 0.0, 120)
 	_refresh_ammo_label()
 
 

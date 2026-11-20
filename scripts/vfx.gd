@@ -1,6 +1,10 @@
 extends Node
 
-## 도트/링/머즐 플래시. 파티클 없이 Polygon2D 레이어로 처리.
+## 도트/링/머즐 + SVG 투사체 + Line2D 트레일.
+
+const PROJ_DIR := "res://assets/projectiles/"
+
+var _proj_tex: Dictionary = {}
 
 
 func burst(at: Vector2, color: Color, count: int = 10, speed: float = 140.0, life: float = 0.35) -> void:
@@ -75,6 +79,130 @@ func hit_spark(at: Vector2, color: Color) -> void:
 func projectile_visual(dtype: int, kind: String = "bullet") -> Node2D:
 	var root := Node2D.new()
 	var color: Color = DamageTypes.TYPE_COLORS.get(dtype, Color(0.9, 0.9, 0.95))
+	var tex := _projectile_texture(dtype, kind)
+	if tex != null:
+		var glow := Sprite2D.new()
+		glow.texture = tex
+		glow.modulate = Color(color.r, color.g, color.b, 0.35)
+		glow.scale = Vector2(1.35, 1.55)
+		glow.z_index = -1
+		root.add_child(glow)
+		var spr := Sprite2D.new()
+		spr.texture = tex
+		spr.centered = true
+		match kind:
+			"orb":
+				spr.scale = Vector2(0.85, 0.85)
+			_:
+				spr.scale = Vector2(0.95, 0.95)
+		root.add_child(spr)
+		return root
+	# fallback polygon
+	return _polygon_projectile(dtype, kind, color)
+
+
+func attach_trail(host: Node2D, color: Color, width: float = 10.0, length: int = 10) -> Line2D:
+	## host에 Line2D 트레일을 붙이고, 매 프레임 월드 좌표를 따라가게 한다.
+	var trail := Line2D.new()
+	trail.width = width
+	trail.default_color = Color(color.r, color.g, color.b, 0.75)
+	trail.joint_mode = Line2D.LINE_JOINT_ROUND
+	trail.begin_cap_mode = Line2D.LINE_CAP_ROUND
+	trail.end_cap_mode = Line2D.LINE_CAP_ROUND
+	trail.antialiased = true
+	trail.z_index = -2
+	trail.top_level = true
+	var grad := Gradient.new()
+	grad.colors = PackedColorArray([
+		Color(color.r, color.g, color.b, 0.0),
+		Color(color.r, color.g, color.b, 0.15),
+		Color(1, 1, 1, 0.85).lerp(color, 0.35),
+	])
+	grad.offsets = PackedFloat32Array([0.0, 0.45, 1.0])
+	trail.gradient = grad
+	var wcurve := Curve.new()
+	wcurve.add_point(Vector2(0.0, 0.15))
+	wcurve.add_point(Vector2(0.55, 0.7))
+	wcurve.add_point(Vector2(1.0, 1.0))
+	trail.width_curve = wcurve
+	host.add_child(trail)
+	_run_trail(host, trail, length)
+	return trail
+
+
+func trail_streak(at: Vector2, dir: Vector2, color: Color, length: float = 18.0) -> void:
+	var parent := _scene()
+	if parent == null:
+		return
+	var streak := Line2D.new()
+	streak.width = 5.0
+	streak.default_color = Color(color.r, color.g, color.b, 0.7)
+	streak.antialiased = true
+	streak.begin_cap_mode = Line2D.LINE_CAP_ROUND
+	streak.end_cap_mode = Line2D.LINE_CAP_ROUND
+	var back := at - dir.normalized() * length
+	streak.points = PackedVector2Array([back, at])
+	var grad := Gradient.new()
+	grad.colors = PackedColorArray([
+		Color(color.r, color.g, color.b, 0.0),
+		Color(color.r, color.g, color.b, 0.75),
+	])
+	streak.gradient = grad
+	parent.add_child(streak)
+	streak.global_position = Vector2.ZERO
+	_fade_out(streak, 0.14)
+
+
+func trail_dot(at: Vector2, color: Color) -> void:
+	var parent := _scene()
+	if parent == null:
+		return
+	var d := _make_poly(Color(color.r, color.g, color.b, 0.55), randf_range(1.5, 2.8), 1.0)
+	parent.add_child(d)
+	d.global_position = at
+	_fade_out(d, 0.12)
+
+
+func _run_trail(host: Node2D, trail: Line2D, length: int) -> void:
+	var pts: PackedVector2Array = PackedVector2Array()
+	while is_instance_valid(host) and is_instance_valid(trail):
+		var p := host.global_position
+		if pts.is_empty() or pts[pts.size() - 1].distance_to(p) >= 3.0:
+			pts.append(p)
+			while pts.size() > length:
+				pts.remove_at(0)
+			trail.points = pts
+		await get_tree().physics_frame
+	if is_instance_valid(trail):
+		_fade_out(trail, 0.12)
+
+
+func _projectile_texture(dtype: int, kind: String) -> Texture2D:
+	var key := kind
+	if kind == "orb":
+		key = "orb_emp"
+	else:
+		match dtype:
+			DamageTypes.Type.PIERCE:
+				key = "bullet_pierce"
+			DamageTypes.Type.EXPLOSION:
+				key = "bullet_explosion"
+			DamageTypes.Type.ELECTRIC:
+				key = "bullet_electric"
+			_:
+				key = "bullet_normal"
+	if _proj_tex.has(key):
+		return _proj_tex[key]
+	var path := PROJ_DIR + key + ".svg"
+	if not ResourceLoader.exists(path):
+		return null
+	var tex: Texture2D = load(path)
+	_proj_tex[key] = tex
+	return tex
+
+
+func _polygon_projectile(dtype: int, kind: String, color: Color) -> Node2D:
+	var root := Node2D.new()
 	var glow := Polygon2D.new()
 	glow.z_index = -1
 	glow.color = Color(color.r, color.g, color.b, 0.28)
@@ -89,18 +217,11 @@ func projectile_visual(dtype: int, kind: String = "bullet") -> Node2D:
 			mid.polygon = _circle_points(9.0, 12)
 			core.polygon = _circle_points(5.5, 10)
 		_:
-			# Needle shell: elongated body + bright tip (not a flat arrow).
 			match dtype:
 				DamageTypes.Type.PIERCE:
-					glow.polygon = PackedVector2Array([
-						Vector2(-14, -4), Vector2(18, 0), Vector2(-14, 4)
-					])
-					mid.polygon = PackedVector2Array([
-						Vector2(-10, -2.4), Vector2(14, 0), Vector2(-10, 2.4)
-					])
-					core.polygon = PackedVector2Array([
-						Vector2(-4, -1.2), Vector2(16, 0), Vector2(-4, 1.2)
-					])
+					glow.polygon = PackedVector2Array([Vector2(-14, -4), Vector2(18, 0), Vector2(-14, 4)])
+					mid.polygon = PackedVector2Array([Vector2(-10, -2.4), Vector2(14, 0), Vector2(-10, 2.4)])
+					core.polygon = PackedVector2Array([Vector2(-4, -1.2), Vector2(16, 0), Vector2(-4, 1.2)])
 				DamageTypes.Type.EXPLOSION:
 					glow.polygon = PackedVector2Array([
 						Vector2(-8, -7), Vector2(10, -3), Vector2(12, 0), Vector2(10, 3), Vector2(-8, 7), Vector2(-4, 0)
@@ -117,32 +238,17 @@ func projectile_visual(dtype: int, kind: String = "bullet") -> Node2D:
 					mid.polygon = PackedVector2Array([
 						Vector2(-8, -1.5), Vector2(0, -3.5), Vector2(12, 0), Vector2(0, 3.5), Vector2(-8, 1.5)
 					])
-					core.polygon = PackedVector2Array([
-						Vector2(-3, -0.8), Vector2(11, 0), Vector2(-3, 0.8)
-					])
+					core.polygon = PackedVector2Array([Vector2(-3, -0.8), Vector2(11, 0), Vector2(-3, 0.8)])
 				_:
 					glow.polygon = PackedVector2Array([
 						Vector2(-11, -5), Vector2(8, -2.5), Vector2(15, 0), Vector2(8, 2.5), Vector2(-11, 5), Vector2(-7, 0)
 					])
-					mid.polygon = PackedVector2Array([
-						Vector2(-7, -2.8), Vector2(10, 0), Vector2(-7, 2.8)
-					])
-					core.polygon = PackedVector2Array([
-						Vector2(-2, -1.3), Vector2(12, 0), Vector2(-2, 1.3)
-					])
+					mid.polygon = PackedVector2Array([Vector2(-7, -2.8), Vector2(10, 0), Vector2(-7, 2.8)])
+					core.polygon = PackedVector2Array([Vector2(-2, -1.3), Vector2(12, 0), Vector2(-2, 1.3)])
 	root.add_child(glow)
 	root.add_child(mid)
 	root.add_child(core)
 	return root
-
-func trail_dot(at: Vector2, color: Color) -> void:
-	var parent := _scene()
-	if parent == null:
-		return
-	var d := _make_poly(Color(color.r, color.g, color.b, 0.55), randf_range(1.5, 2.8), 1.0)
-	parent.add_child(d)
-	d.global_position = at
-	_fade_out(d, 0.12)
 
 
 func _scene() -> Node:

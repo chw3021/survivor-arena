@@ -19,6 +19,8 @@ const WEAPONS := [
 		"ammo": 12,
 		"reload": 0.7,
 		"speed": 520.0,
+		"sfx_shot": "shot_pistol",
+		"sfx_reload": "reload_pistol",
 		"note": "기본 일반무기",
 	},
 	{
@@ -35,6 +37,8 @@ const WEAPONS := [
 		"ammo": 40,
 		"reload": 1.1,
 		"speed": 0.0,
+		"sfx_shot": "shot_flame",
+		"sfx_reload": "reload_rifle",
 		"note": "폭발 광역",
 	},
 	{
@@ -51,6 +55,8 @@ const WEAPONS := [
 		"ammo": 6,
 		"reload": 1.0,
 		"speed": 460.0,
+		"sfx_shot": "shot_shotgun",
+		"sfx_reload": "reload_shotgun",
 		"note": "폭발 범용",
 	},
 	{
@@ -67,6 +73,8 @@ const WEAPONS := [
 		"ammo": 24,
 		"reload": 1.0,
 		"speed": 600.0,
+		"sfx_shot": "shot_assault",
+		"sfx_reload": "reload_rifle",
 		"note": "관통 광역(다관통)",
 	},
 	{
@@ -83,6 +91,8 @@ const WEAPONS := [
 		"ammo": 4,
 		"reload": 1.4,
 		"speed": 900.0,
+		"sfx_shot": "shot_sniper",
+		"sfx_reload": "reload_heavy",
 		"note": "관통 고화력, 발사 느림",
 	},
 	{
@@ -99,6 +109,8 @@ const WEAPONS := [
 		"ammo": 50,
 		"reload": 2.0,
 		"speed": 580.0,
+		"sfx_shot": "shot_mg",
+		"sfx_reload": "reload_heavy",
 		"note": "관통 지속사격, 장전 김",
 	},
 	{
@@ -116,6 +128,8 @@ const WEAPONS := [
 		"reload": 0.9,
 		"speed": 0.0,
 		"stun": 0.55,
+		"sfx_shot": "shot_taser",
+		"sfx_reload": "reload_energy",
 		"note": "전격 단거리 경직",
 	},
 	{
@@ -134,6 +148,8 @@ const WEAPONS := [
 		"speed": 340.0,
 		"aoe": 70.0,
 		"is_emp": true,
+		"sfx_shot": "shot_emp",
+		"sfx_reload": "reload_energy",
 		"note": "전격 광역, 속성일치 200%",
 	},
 ]
@@ -163,3 +179,13 @@ static func index_of(id: String) -> int:
 
 static func type_label(dmg_type: int) -> String:
 	return str(DamageTypes.TYPE_NAMES.get(dmg_type, "일반"))
+
+
+static func shot_sfx(weapon: Dictionary) -> String:
+	var key := str(weapon.get("sfx_shot", "gunshot"))
+	return key if key != "" else "gunshot"
+
+
+static func reload_sfx(weapon: Dictionary) -> String:
+	var key := str(weapon.get("sfx_reload", "reload"))
+	return key if key != "" else "reload"

@@ -45,7 +45,7 @@ func _ready() -> void:
 	help_label.text = "WASD 이동 | 방향키 공격 | Space 대시 | Q 주/부무기 | E 액티브 | 초록 젬=경험치 | Esc 메뉴"
 	overlay.visible = false
 	passive_select.visible = false
-	passive_title.text = "패시브 강화 — 카드 1개를 선택하세요 (1 / 2 / 3)"
+	passive_title.text = "패시브 강화 - 카드 1개를 선택하세요 (1 / 2 / 3)"
 	_ensure_card_buttons()
 
 
@@ -64,8 +64,7 @@ func _style_panels() -> void:
 
 
 func _apply_ui_font() -> void:
-	if ResourceLoader.exists("res://fonts/Jua-Regular.ttf"):
-		_ui_font = load("res://fonts/Jua-Regular.ttf")
+	_ui_font = UiTheme.font()
 	if _ui_font == null:
 		return
 	var labels: Array = [
@@ -118,7 +117,7 @@ func _refresh(_arg: Variant = null) -> void:
 	active_name.text = str(def["name"])
 	var ready := float(player.get_active_ready_ratio())
 	if ready >= 0.999:
-		active_cd.text = "준비 완료  ·  E"
+		active_cd.text = "준비 완료  /  E"
 		active_cd.modulate = Color(0.75, 1.0, 0.7)
 	else:
 		active_cd.text = "재사용 %.0f%%" % (ready * 100.0)
@@ -128,7 +127,7 @@ func _refresh(_arg: Variant = null) -> void:
 	var mm := t / 60
 	var ss := t % 60
 	var diff_name: String = str(Loadout.DIFFICULTY_NAMES.get(Loadout.difficulty, Loadout.difficulty))
-	status_label.text = "난이도  %s\n무기  %s\n대시  %.0f%%   ·   Wave %d\n처치 %d   ·   %02d:%02d\n패시브  %s" % [
+	status_label.text = "난이도  %s\n무기  %s\n대시  %.0f%%   /   Wave %d\n처치 %d   /   %02d:%02d\n패시브  %s" % [
 		diff_name,
 		player.get_weapon_name(),
 		player.get_dash_ready_ratio() * 100.0,
@@ -198,7 +197,7 @@ func _on_player_died() -> void:
 	Game.running = false
 	passive_select.visible = false
 	overlay.visible = true
-	overlay_label.text = "전투 종료\n처치: %d\nR 재시작  ·  M 메뉴" % Game.kills
+	overlay_label.text = "전투 종료\n처치: %d\nR 재시작  /  M 메뉴" % Game.kills
 
 
 func _go_menu() -> void:

@@ -1,7 +1,8 @@
 extends Node
 
 ## SFX: Godot Sample + 웹 제스처 unlock
-## BGM: 네이티브=Godot / 웹=HTML5 Audio(bgm/arena.wav)
+## BGM: 네이티브=Godot / 웹=HTML5 Audio(bgm/*.wav)
+## 로비=bgm_lobby / 전투=arena
 ## 참고: CompanyDefense docs/godot-web-audio.md
 
 const BUS_MASTER := "Master"
@@ -11,11 +12,16 @@ const POOL := 10
 const PLAYBACK_SAMPLE := 2
 const SFX_DIR := "res://assets/sfx/"
 const BGM_DIR := "res://assets/bgm/"
-const BGM_ID := "arena"
+const BGM_LOBBY := "bgm_lobby"
+const BGM_ARENA := "arena"
+const BGM_ID := BGM_LOBBY # 기본/부팅용 (메뉴)
 
 const SFX_IDS := [
 	"gunshot", "reload", "dash", "hurt", "hit",
 	"weapon_switch", "explosion", "electric", "pickup",
+	"shot_pistol", "shot_shotgun", "shot_assault", "shot_sniper",
+	"shot_mg", "shot_flame", "shot_taser", "shot_emp",
+	"reload_pistol", "reload_shotgun", "reload_rifle", "reload_heavy", "reload_energy",
 ]
 
 var volume_master: float = 1.0
@@ -30,13 +36,13 @@ var _web_unlocked: bool = false
 var _bgm: AudioStreamPlayer
 var _bgm_id: String = ""
 var _pending_bgm: String = BGM_ID
+var _want_bgm: bool = true
 var _unlock_tries: int = 0
 
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	_ensure_buses()
-	apply_volumes()
 	_load_streams()
 
 	for i in POOL:
@@ -63,7 +69,14 @@ func _ready() -> void:
 		set_process_input(true)
 		set_process_unhandled_input(true)
 	else:
-		play_bgm(BGM_ID)
+		# Loadout가 설정을 올린 뒤 볼륨 반영 + BGM 시작
+		call_deferred("_boot_native_bgm")
+
+
+func _boot_native_bgm() -> void:
+	apply_volumes()
+	if _want_bgm:
+		play_bgm(_pending_bgm if _pending_bgm != "" else BGM_ID, true)
 
 
 func _process(_dt: float) -> void:
@@ -84,12 +97,15 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func ensure_web_unlocked() -> void:
+	## 웹: 이미 unlock된 경우 컨텍스트만 resume + BGM 재확인.
+	## 미unlock이면 제스처 대기 (로딩에서 가짜 unlock 금지).
 	if not OS.has_feature("web"):
+		_ensure_bgm_playing()
 		return
 	if _web_unlocked:
 		_resume_web_audio_context()
+		_ensure_bgm_playing()
 		return
-	_finish_web_unlock()
 
 
 func play(key: String, pitch_scale: float = 1.0, volume_db: float = 0.0, gap_ms: int = 35) -> void:
@@ -108,31 +124,40 @@ func play(key: String, pitch_scale: float = 1.0, volume_db: float = 0.0, gap_ms:
 
 func play_bgm(id: String = BGM_ID, force: bool = false) -> void:
 	_pending_bgm = id
+	_want_bgm = true
 	if OS.has_feature("web"):
 		if not force and not _web_unlocked:
 			_alog("play_bgm(%s) deferred" % id)
 			return
 		if volume_master <= 0.001 or volume_bgm <= 0.001:
 			_html_bgm_stop()
+			_bgm_id = ""
 			return
-		if not force and _bgm_id == id:
+		if not force and _bgm_id == id and _html_bgm_is_playing(id):
+			_html_bgm_set_volume()
 			return
 		_bgm_id = id
 		_html_bgm_play(id, true)
 		return
 
 	if _bgm == null or not _streams.has(id):
+		_alog("play_bgm skip: bgm=%s has=%s" % [_bgm != null, _streams.has(id)])
 		return
 	if volume_master <= 0.001 or volume_bgm <= 0.001:
+		if _bgm.playing:
+			_bgm.stop()
+		_bgm_id = ""
 		return
-	if _bgm_id == id and _bgm.playing:
+	if not force and _bgm_id == id and _bgm.playing:
 		return
 	_bgm_id = id
 	_bgm.stream = _streams[id]
 	_bgm.play()
+	_alog("native play_bgm(%s)" % id)
 
 
 func stop_bgm() -> void:
+	_want_bgm = false
 	_bgm_id = ""
 	_pending_bgm = ""
 	if OS.has_feature("web"):
@@ -147,6 +172,28 @@ func apply_volumes() -> void:
 	_set_bus_linear(BUS_SFX, volume_sfx)
 	if OS.has_feature("web"):
 		_html_bgm_set_volume()
+	# 볼륨을 0→복구하거나 설정 로드 후 BGM이 꺼져 있으면 재시작
+	_ensure_bgm_playing()
+
+
+func _ensure_bgm_playing() -> void:
+	if not _want_bgm:
+		return
+	if volume_master <= 0.001 or volume_bgm <= 0.001:
+		return
+	var id := _pending_bgm if _pending_bgm != "" else BGM_ID
+	if OS.has_feature("web"):
+		if not _web_unlocked:
+			return
+		if _bgm_id != id or not _html_bgm_is_playing(id):
+			play_bgm(id, true)
+		else:
+			_html_bgm_set_volume()
+		return
+	if _bgm == null:
+		return
+	if not _bgm.playing or _bgm_id != id:
+		play_bgm(id, true)
 
 
 func _play_now(id: String, pitch: float, volume_db: float) -> void:
@@ -189,11 +236,10 @@ func _finish_web_unlock() -> void:
 	if master_idx >= 0:
 		AudioServer.set_bus_mute(master_idx, false)
 	apply_volumes()
-	# 제스처 안에서 짧은 SFX 한 번 + BGM 시작
 	if _streams.has("weapon_switch"):
 		_play_now("weapon_switch", 1.0, -6.0)
-	play_bgm(_pending_bgm if _pending_bgm != "" else BGM_ID, true)
 	_web_unlocked = true
+	play_bgm(_pending_bgm if _pending_bgm != "" else BGM_ID, true)
 	set_process_input(false)
 	set_process_unhandled_input(false)
 	_alog("fully unlocked")
@@ -212,18 +258,24 @@ func _load_streams() -> void:
 			AudioServer.register_stream_as_sample(stream)
 		_streams[id] = stream
 
-	# 네이티브만 Godot BGM 로드. 웹은 HTML5.
 	if not OS.has_feature("web"):
-		var bgm_path: String = BGM_DIR + BGM_ID + ".wav"
-		if ResourceLoader.exists(bgm_path):
-			var bgm_stream: AudioStream = load(bgm_path)
-			if bgm_stream is AudioStreamWAV:
-				bgm_stream = bgm_stream.duplicate()
-				(bgm_stream as AudioStreamWAV).loop_mode = AudioStreamWAV.LOOP_FORWARD
-			_streams[BGM_ID] = bgm_stream
-			_alog("loaded native bgm")
+		for bgm_id in [BGM_LOBBY, BGM_ARENA]:
+			_load_native_bgm(bgm_id)
 
 	_alog("loaded count=%d" % _streams.size())
+
+
+func _load_native_bgm(bgm_id: String) -> void:
+	var bgm_path: String = BGM_DIR + bgm_id + ".wav"
+	if not ResourceLoader.exists(bgm_path):
+		_alog("missing bgm: %s" % bgm_path)
+		return
+	var bgm_stream: AudioStream = load(bgm_path)
+	if bgm_stream is AudioStreamWAV:
+		bgm_stream = bgm_stream.duplicate()
+		(bgm_stream as AudioStreamWAV).loop_mode = AudioStreamWAV.LOOP_FORWARD
+	_streams[bgm_id] = bgm_stream
+	_alog("loaded native bgm %s" % bgm_id)
 
 
 func _ensure_buses() -> void:
@@ -350,15 +402,16 @@ func _html_bgm_preload() -> void:
 					else startFade();
 				});
 			};
-			var id = 'arena';
-			if (!window.__saBgm[id]) {
-				var a = new Audio('bgm/' + id + '.wav');
-				a.preload = 'auto';
-				a.loop = false;
-				window.__saBindBgm(a, id);
-				window.__saBgm[id] = a;
-			}
-			console.log('[Audio/html] preload arena');
+			['bgm_lobby', 'arena'].forEach(function (id) {
+				if (!window.__saBgm[id]) {
+					var a = new Audio('bgm/' + id + '.wav');
+					a.preload = 'auto';
+					a.loop = false;
+					window.__saBindBgm(a, id);
+					window.__saBgm[id] = a;
+				}
+			});
+			console.log('[Audio/html] preload bgm_lobby+arena');
 		})();
 	""")
 
@@ -408,6 +461,18 @@ func _html_bgm_play(id: String, _loop: bool) -> void:
 	""" % [JSON.stringify(vol), JSON.stringify(id)]
 	JavaScriptBridge.eval(js)
 	_alog("html5 play_bgm(%s) vol=%.2f" % [id, vol])
+
+
+func _html_bgm_is_playing(id: String) -> bool:
+	if not OS.has_feature("web"):
+		return false
+	var r: Variant = JavaScriptBridge.eval("""
+		(function () {
+			var a = (window.__saBgm || {})[%s];
+			return !!(a && !a.paused && a.currentTime > 0);
+		})();
+	""" % JSON.stringify(id))
+	return bool(r)
 
 
 func _html_bgm_stop() -> void:

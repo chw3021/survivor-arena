@@ -1,0 +1,12 @@
+# Survivor Arena - Lobby BGM (Suno)
+
+Style tags:
+modern rock, bounce rhythm, groovy bass, punchy drums, clean electric guitar, arena rock, energetic but cool, cinematic game lobby, minor-key lift, no vocals OR light vocal chops only
+
+Prompt (paste into Suno):
+Modern rock lobby theme with a bouncy midtempo groove, punchy kick and snare, rubbery bass bounce, bright palm-muted guitar chugs, short neon lead hooks, cool confident energy for a sci-fi rescue game menu, polished mix, loop-friendly arrangement, no lyrics, instrumental only, 118 BPM feel
+
+Negative / avoid:
+edm drop, trap hi-hats wall, metal scream, slow ballad, chiptune, piano solo jazz, lo-fi sleepy, overly dark horror drones
+
+Title idea: Cat Rescue Lobby Bounce

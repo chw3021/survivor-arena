@@ -13,6 +13,8 @@ const FLOOR_MARGIN := 160.0
 
 func _ready() -> void:
 	Game.reset()
+	Sfx.ensure_web_unlocked()
+	Sfx.play_bgm(Sfx.BGM_ARENA, true)
 	spawner.setup(player)
 	hud.setup(player)
 	camera.make_current()
