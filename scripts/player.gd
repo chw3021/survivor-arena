@@ -23,6 +23,9 @@ var alive: bool = true
 
 var ammo_left: int = 12
 var reload_left: float = 0.0
+var reload_total: float = 0.0
+var sniper_charge: float = 0.0
+const SNIPER_CHARGE_TIME := 0.85
 var attack_count: int = 0
 
 var xp: int = 0
@@ -54,6 +57,7 @@ var _tesla_cd: float = 0.0
 @onready var attack_shape: CollisionShape2D = $AttackArea/CollisionShape2D
 
 var ammo_label: Label
+var aim_overlay: Node2D
 
 
 func _ready() -> void:
@@ -61,10 +65,19 @@ func _ready() -> void:
 	attack_area.monitoring = false
 	attack_shape.disabled = true
 	_setup_ammo_label()
+	_setup_aim_overlay()
 	_reset_ammo()
 	_update_visual()
 	_refresh_ammo_label()
 	stats_changed.emit()
+
+
+func _setup_aim_overlay() -> void:
+	var script: Script = load("res://scripts/aim_overlay.gd")
+	aim_overlay = Node2D.new()
+	aim_overlay.set_script(script)
+	aim_overlay.set("player", self)
+	add_child(aim_overlay)
 
 
 func _setup_ammo_label() -> void:
@@ -84,8 +97,9 @@ func _refresh_ammo_label() -> void:
 	if ammo_label == null:
 		return
 	if reload_left > 0.0:
-		ammo_label.text = "장전중"
-		ammo_label.modulate = Color(1.0, 0.75, 0.35)
+		# 장전은 머리 위 원형 타이머로 표시
+		ammo_label.text = ""
+		ammo_label.modulate = Color(1, 1, 1)
 	else:
 		var w := _current_weapon()
 		ammo_label.text = "%d/%d" % [ammo_left, int(w["ammo"])]
@@ -99,7 +113,7 @@ func _physics_process(delta: float) -> void:
 	_tick_timers(delta)
 	_tick_passives(delta)
 	_handle_movement(delta)
-	_handle_actions()
+	_handle_actions(delta)
 	move_and_slide()
 	_resolve_enemy_touch(delta)
 	_tick_shield_contact(delta)
@@ -142,11 +156,12 @@ func _handle_movement(_delta: float) -> void:
 	velocity = input_dir * move_speed * move_speed_mul
 
 
-func _handle_actions() -> void:
+func _handle_actions(delta: float) -> void:
 	if Input.is_action_just_pressed("dash"):
 		_try_dash()
 	if Input.is_action_just_pressed("weapon_next"):
 		weapon_slot = 1 - weapon_slot
+		sniper_charge = 0.0
 		_reset_ammo()
 		Sfx.play("weapon_switch", 1.0 + weapon_slot * 0.05)
 		stats_changed.emit()
@@ -154,8 +169,23 @@ func _handle_actions() -> void:
 		_try_active()
 
 	var attack_dir := Input.get_vector("attack_left", "attack_right", "attack_up", "attack_down")
-	if attack_dir != Vector2.ZERO and attack_cooldown_left <= 0.0 and reload_left <= 0.0:
-		_attack(attack_dir.normalized())
+	if attack_dir != Vector2.ZERO:
+		facing = attack_dir.normalized()
+		if reload_left > 0.0 or attack_cooldown_left > 0.0:
+			return
+		if _is_sniper_equipped():
+			sniper_charge = minf(1.0, sniper_charge + delta / SNIPER_CHARGE_TIME)
+			if sniper_charge >= 1.0:
+				_attack(facing)
+				sniper_charge = 0.0
+		else:
+			sniper_charge = 0.0
+			_attack(facing)
+	else:
+		if _is_sniper_equipped() and sniper_charge > 0.0:
+			sniper_charge = maxf(0.0, sniper_charge - delta * 1.6)
+		else:
+			sniper_charge = 0.0
 
 
 func _try_dash() -> void:
@@ -319,8 +349,19 @@ func _attack(dir: Vector2) -> void:
 		_:
 			_projectile_attack(dir, weapon)
 
-	if ammo_left <= 0:
+	if ammo_left <= 0 or str(weapon.get("id", "")) == "sniper":
 		_start_reload(float(weapon["reload"]))
+
+
+func _is_sniper_equipped() -> bool:
+	return str(_current_weapon().get("id", "")) == "sniper"
+
+
+func get_aim_dir() -> Vector2:
+	var attack_dir := Input.get_vector("attack_left", "attack_right", "attack_up", "attack_down")
+	if attack_dir != Vector2.ZERO:
+		return attack_dir.normalized()
+	return facing.normalized() if facing != Vector2.ZERO else Vector2.RIGHT
 
 
 func _on_attack_fired(weapon: Dictionary) -> void:
@@ -681,8 +722,10 @@ func apply_passive(id: String) -> void:
 func _start_reload(duration: float) -> void:
 	if reload_left > 0.0:
 		return
-	reload_left = duration
+	reload_total = maxf(0.05, duration)
+	reload_left = reload_total
 	ammo_left = 0
+	sniper_charge = 0.0
 	var w := _current_weapon()
 	var reload_key := WeaponCatalog.reload_sfx(w)
 	var pitch := randf_range(0.96, 1.05)
@@ -698,6 +741,8 @@ func _reset_ammo() -> void:
 	var weapon := _current_weapon()
 	ammo_left = int(weapon["ammo"])
 	reload_left = 0.0
+	reload_total = 0.0
+	sniper_charge = 0.0
 	_refresh_ammo_label()
 
 
