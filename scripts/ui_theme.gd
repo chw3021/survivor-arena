@@ -1,21 +1,49 @@
 extends Node
 
-## 캐주얼 스톤톤 UI + 읽기 쉬운 한글 폰트.
-## Noto Sans KR 중간~세미볼드 + 외곽선. 가는 글씨/네온 테마 금지.
+## 메뉴/HUD 테마 팩. 현재 기본=stone(캐주얼 스톤).
+## theme_changed 로 메뉴가 다시 그려진다.
+
+signal theme_changed(theme_id: String)
 
 const BODY_FONT_PATH := "res://fonts/NotoSansKR-Regular.ttf"
 const FALLBACK_FONT_PATH := "res://fonts/Jua-Regular.ttf"
 
-const C_ACCENT := Color(0.35, 0.78, 0.95, 1.0)
-const C_ACCENT_WARM := Color(0.98, 0.72, 0.28, 1.0)
-const C_PANEL := Color(0.2, 0.22, 0.26, 0.94)
-const C_PANEL_INNER := Color(0.16, 0.18, 0.22, 0.96)
-const C_BTN := Color(0.28, 0.32, 0.38, 1.0)
-const C_BTN_HOVER := Color(0.36, 0.42, 0.5, 1.0)
-const C_BTN_ACTIVE := Color(0.22, 0.48, 0.62, 1.0)
-const C_TEXT := Color(0.98, 0.98, 0.99, 1.0)
-const C_MUTED := Color(0.82, 0.86, 0.9, 1.0)
-const C_OUTLINE := Color(0.05, 0.06, 0.08, 0.85)
+const THEME_STONE := "stone"
+const THEME_GRUNGE := "grunge"
+const THEME_CLEAN := "clean"
+const THEME_SIMPLE := "simple"
+
+const THEME_ORDER := [THEME_STONE, THEME_GRUNGE, THEME_CLEAN, THEME_SIMPLE]
+
+const THEME_NAMES := {
+	THEME_STONE: "스톤 캐주얼",
+	THEME_GRUNGE: "꼬질 귀여움",
+	THEME_CLEAN: "클린 캐주얼",
+	THEME_SIMPLE: "심플 오렌지",
+}
+
+## 하위호환: 예전 코드가 UiTheme.C_TEXT 등을 직접 참조.
+var C_ACCENT: Color = Color(0.35, 0.78, 0.95, 1.0)
+var C_ACCENT_WARM: Color = Color(0.98, 0.72, 0.28, 1.0)
+var C_PANEL: Color = Color(0.2, 0.22, 0.26, 0.94)
+var C_PANEL_INNER: Color = Color(0.16, 0.18, 0.22, 0.96)
+var C_BTN: Color = Color(0.28, 0.32, 0.38, 1.0)
+var C_BTN_HOVER: Color = Color(0.36, 0.42, 0.5, 1.0)
+var C_BTN_ACTIVE: Color = Color(0.22, 0.48, 0.62, 1.0)
+var C_BTN_CTA: Color = Color(0.28, 0.72, 0.42, 1.0)
+var C_BTN_CTA_BORDER: Color = Color(0.18, 0.5, 0.28, 1.0)
+var C_TEXT: Color = Color(0.98, 0.98, 0.99, 1.0)
+var C_MUTED: Color = Color(0.82, 0.86, 0.9, 1.0)
+var C_OUTLINE: Color = Color(0.05, 0.06, 0.08, 0.85)
+var C_BORDER: Color = Color(0.62, 0.68, 0.76, 0.95)
+var C_SLOT: Color = Color(0.24, 0.27, 0.32, 0.98)
+var C_SLOT_SEL: Color = Color(0.22, 0.36, 0.44, 0.98)
+var C_DIM: Color = Color(0.08, 0.09, 0.12, 0.55)
+var corner_radius: int = 14
+var border_width: int = 2
+var bg_path: String = "res://assets/ui/menu_bg_stone.jpg"
+
+var theme_id: String = THEME_STONE
 
 var _regular: Font
 var _medium: Font
@@ -24,6 +52,121 @@ var _semibold: Font
 
 func _ready() -> void:
 	font()
+	# Loadout가 먼저 로드된 뒤 deferred로 테마 적용
+	call_deferred("_boot_theme")
+
+
+func _boot_theme() -> void:
+	if Loadout != null and str(Loadout.ui_theme_id) != "":
+		apply_theme(str(Loadout.ui_theme_id), false)
+	else:
+		apply_theme(THEME_STONE, false)
+
+
+func apply_theme(id: String, emit_signal: bool = true) -> void:
+	if not THEME_NAMES.has(id):
+		id = THEME_STONE
+	theme_id = id
+	_apply_palette(id)
+	if emit_signal:
+		theme_changed.emit(theme_id)
+
+
+func bg_texture_path() -> String:
+	if ResourceLoader.exists(bg_path):
+		return bg_path
+	# fallback: legacy menu_bg.jpg
+	if ResourceLoader.exists("res://assets/ui/menu_bg.jpg"):
+		return "res://assets/ui/menu_bg.jpg"
+	return bg_path
+
+
+func _apply_palette(id: String) -> void:
+	match id:
+		THEME_GRUNGE:
+			# 아이작풍: 베이지/잉크 + 빨간 악센트 (스카프)
+			C_ACCENT = Color(0.78, 0.22, 0.22, 1.0)
+			C_ACCENT_WARM = Color(0.9, 0.55, 0.25, 1.0)
+			C_PANEL = Color(0.86, 0.8, 0.7, 0.92)
+			C_PANEL_INNER = Color(0.8, 0.74, 0.64, 0.95)
+			C_BTN = Color(0.72, 0.66, 0.56, 1.0)
+			C_BTN_HOVER = Color(0.8, 0.74, 0.64, 1.0)
+			C_BTN_ACTIVE = Color(0.55, 0.28, 0.26, 1.0)
+			C_BTN_CTA = Color(0.72, 0.28, 0.28, 1.0)
+			C_BTN_CTA_BORDER = Color(0.35, 0.12, 0.12, 1.0)
+			C_TEXT = Color(0.16, 0.14, 0.12, 1.0)
+			C_MUTED = Color(0.38, 0.34, 0.3, 1.0)
+			C_OUTLINE = Color(0.95, 0.92, 0.86, 0.55)
+			C_BORDER = Color(0.28, 0.24, 0.2, 0.9)
+			C_SLOT = Color(0.9, 0.85, 0.76, 0.98)
+			C_SLOT_SEL = Color(0.92, 0.78, 0.72, 0.98)
+			C_DIM = Color(0.25, 0.2, 0.16, 0.45)
+			corner_radius = 8
+			border_width = 3
+			bg_path = "res://assets/ui/menu_bg_grunge.jpg"
+		THEME_CLEAN:
+			# 밝고 깔끔한 모바일 캐주얼
+			C_ACCENT = Color(0.25, 0.7, 0.95, 1.0)
+			C_ACCENT_WARM = Color(1.0, 0.78, 0.2, 1.0)
+			C_PANEL = Color(0.14, 0.16, 0.2, 0.9)
+			C_PANEL_INNER = Color(0.18, 0.2, 0.25, 0.95)
+			C_BTN = Color(0.22, 0.26, 0.32, 1.0)
+			C_BTN_HOVER = Color(0.3, 0.36, 0.44, 1.0)
+			C_BTN_ACTIVE = Color(0.18, 0.45, 0.7, 1.0)
+			C_BTN_CTA = Color(1.0, 0.82, 0.2, 1.0)
+			C_BTN_CTA_BORDER = Color(0.75, 0.55, 0.1, 1.0)
+			C_TEXT = Color(0.98, 0.99, 1.0, 1.0)
+			C_MUTED = Color(0.78, 0.84, 0.9, 1.0)
+			C_OUTLINE = Color(0.05, 0.06, 0.08, 0.8)
+			C_BORDER = Color(0.45, 0.55, 0.68, 0.95)
+			C_SLOT = Color(0.2, 0.24, 0.3, 0.98)
+			C_SLOT_SEL = Color(0.18, 0.38, 0.55, 0.98)
+			C_DIM = Color(0.12, 0.1, 0.08, 0.4)
+			corner_radius = 16
+			border_width = 2
+			bg_path = "res://assets/ui/menu_bg_clean.jpg"
+		THEME_SIMPLE:
+			# 크림/오렌지 심플
+			C_ACCENT = Color(0.95, 0.62, 0.22, 1.0)
+			C_ACCENT_WARM = Color(0.98, 0.75, 0.3, 1.0)
+			C_PANEL = Color(0.96, 0.92, 0.84, 0.95)
+			C_PANEL_INNER = Color(1.0, 0.97, 0.9, 0.98)
+			C_BTN = Color(0.95, 0.7, 0.32, 1.0)
+			C_BTN_HOVER = Color(1.0, 0.78, 0.4, 1.0)
+			C_BTN_ACTIVE = Color(0.9, 0.55, 0.18, 1.0)
+			C_BTN_CTA = Color(0.35, 0.78, 0.42, 1.0)
+			C_BTN_CTA_BORDER = Color(0.2, 0.55, 0.28, 1.0)
+			C_TEXT = Color(0.28, 0.22, 0.16, 1.0)
+			C_MUTED = Color(0.45, 0.38, 0.3, 1.0)
+			C_OUTLINE = Color(1.0, 0.98, 0.94, 0.65)
+			C_BORDER = Color(0.9, 0.58, 0.2, 1.0)
+			C_SLOT = Color(1.0, 0.96, 0.88, 0.98)
+			C_SLOT_SEL = Color(1.0, 0.9, 0.7, 0.98)
+			C_DIM = Color(0.55, 0.4, 0.2, 0.35)
+			corner_radius = 22
+			border_width = 4
+			bg_path = "res://assets/ui/menu_bg_simple.jpg"
+		_:
+			# stone = 현재 테마 보존
+			C_ACCENT = Color(0.35, 0.78, 0.95, 1.0)
+			C_ACCENT_WARM = Color(0.98, 0.72, 0.28, 1.0)
+			C_PANEL = Color(0.2, 0.22, 0.26, 0.94)
+			C_PANEL_INNER = Color(0.16, 0.18, 0.22, 0.96)
+			C_BTN = Color(0.28, 0.32, 0.38, 1.0)
+			C_BTN_HOVER = Color(0.36, 0.42, 0.5, 1.0)
+			C_BTN_ACTIVE = Color(0.22, 0.48, 0.62, 1.0)
+			C_BTN_CTA = Color(0.28, 0.72, 0.42, 1.0)
+			C_BTN_CTA_BORDER = Color(0.18, 0.5, 0.28, 1.0)
+			C_TEXT = Color(0.98, 0.98, 0.99, 1.0)
+			C_MUTED = Color(0.82, 0.86, 0.9, 1.0)
+			C_OUTLINE = Color(0.05, 0.06, 0.08, 0.85)
+			C_BORDER = Color(0.62, 0.68, 0.76, 0.95)
+			C_SLOT = Color(0.24, 0.27, 0.32, 0.98)
+			C_SLOT_SEL = Color(0.22, 0.36, 0.44, 0.98)
+			C_DIM = Color(0.08, 0.09, 0.12, 0.55)
+			corner_radius = 14
+			border_width = 2
+			bg_path = "res://assets/ui/menu_bg_stone.jpg"
 
 
 func font() -> Font:
@@ -31,7 +174,6 @@ func font() -> Font:
 
 
 func regular_font() -> Font:
-	## 가는 regular는 웹에서 깨져 보이므로 medium에 가깝게.
 	if _regular != null:
 		return _regular
 	_regular = _variation(560, 0.18)
@@ -66,7 +208,7 @@ func _variation(weight: int, embolden: float) -> Font:
 		return null
 	var fv := FontVariation.new()
 	fv.base_font = base
-	fv.variation_opentype = {0x77676874: weight} # wght
+	fv.variation_opentype = {0x77676874: weight}
 	fv.variation_embolden = embolden
 	return fv
 
@@ -84,14 +226,12 @@ func apply_font(node: Control, size: int = -1, color: Color = Color(-1, -1, -1, 
 		return
 	node.add_theme_font_override("font", f)
 	var use_size := size if size > 0 else 16
-	# 한글 가독성: 너무 작은 사이즈 금지
 	use_size = maxi(use_size, 14)
 	node.add_theme_font_size_override("font_size", use_size)
 	if color.r >= 0.0:
 		node.add_theme_color_override("font_color", color)
 	else:
 		node.add_theme_color_override("font_color", C_TEXT)
-	# 가는 획/안티앨리어싱 깨짐 완화
 	node.add_theme_color_override("font_outline_color", C_OUTLINE)
 	node.add_theme_constant_override("outline_size", 2 if use_size < 20 else 3)
 
@@ -117,14 +257,14 @@ func _apply_recursive(node: Node, f: Font) -> void:
 func panel_style(_accent: Color = Color(0.6, 0.65, 0.72, 0.9)) -> StyleBoxFlat:
 	var box := StyleBoxFlat.new()
 	box.bg_color = C_PANEL
-	box.set_corner_radius_all(14)
+	box.set_corner_radius_all(corner_radius)
 	box.content_margin_left = 16
 	box.content_margin_right = 16
 	box.content_margin_top = 14
 	box.content_margin_bottom = 14
-	box.border_color = Color(0.62, 0.68, 0.76, 0.95)
-	box.set_border_width_all(2)
-	box.shadow_color = Color(0, 0, 0, 0.35)
+	box.border_color = C_BORDER
+	box.set_border_width_all(border_width)
+	box.shadow_color = Color(0, 0, 0, 0.3)
 	box.shadow_size = 8
 	box.shadow_offset = Vector2(0, 3)
 	return box
@@ -132,15 +272,15 @@ func panel_style(_accent: Color = Color(0.6, 0.65, 0.72, 0.9)) -> StyleBoxFlat:
 
 func slot_style(selected: bool = false) -> StyleBoxFlat:
 	var box := StyleBoxFlat.new()
-	box.bg_color = Color(0.24, 0.27, 0.32, 0.98) if not selected else Color(0.22, 0.36, 0.44, 0.98)
-	box.set_corner_radius_all(12)
+	box.bg_color = C_SLOT_SEL if selected else C_SLOT
+	box.set_corner_radius_all(maxi(8, corner_radius - 2))
 	box.content_margin_left = 10
 	box.content_margin_right = 10
 	box.content_margin_top = 10
 	box.content_margin_bottom = 10
-	box.border_color = C_ACCENT if selected else Color(0.55, 0.6, 0.68, 0.9)
-	box.set_border_width_all(3 if selected else 2)
-	box.shadow_color = Color(0, 0, 0, 0.28)
+	box.border_color = C_ACCENT if selected else C_BORDER
+	box.set_border_width_all(border_width + (1 if selected else 0))
+	box.shadow_color = Color(0, 0, 0, 0.25)
 	box.shadow_size = 4
 	box.shadow_offset = Vector2(0, 2)
 	return box
@@ -148,28 +288,28 @@ func slot_style(selected: bool = false) -> StyleBoxFlat:
 
 func button_style(kind: String = "normal") -> StyleBoxFlat:
 	var box := StyleBoxFlat.new()
-	box.set_corner_radius_all(12)
+	box.set_corner_radius_all(maxi(10, corner_radius - 2))
 	box.content_margin_left = 16
 	box.content_margin_right = 16
 	box.content_margin_top = 12
 	box.content_margin_bottom = 12
-	box.set_border_width_all(2)
-	box.shadow_color = Color(0, 0, 0, 0.3)
+	box.set_border_width_all(border_width)
+	box.shadow_color = Color(0, 0, 0, 0.28)
 	box.shadow_size = 4
 	box.shadow_offset = Vector2(0, 2)
 	match kind:
 		"hover":
 			box.bg_color = C_BTN_HOVER
-			box.border_color = Color(0.78, 0.84, 0.92, 1.0)
+			box.border_color = C_ACCENT
 		"active", "pressed":
 			box.bg_color = C_BTN_ACTIVE
 			box.border_color = C_ACCENT
 		"cta":
-			box.bg_color = Color(0.28, 0.72, 0.42, 1.0)
-			box.border_color = Color(0.18, 0.5, 0.28, 1.0)
+			box.bg_color = C_BTN_CTA
+			box.border_color = C_BTN_CTA_BORDER
 		_:
 			box.bg_color = C_BTN
-			box.border_color = Color(0.58, 0.64, 0.72, 1.0)
+			box.border_color = C_BORDER
 	return box
 
 

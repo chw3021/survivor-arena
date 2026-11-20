@@ -1,17 +1,17 @@
 extends Control
 
-## PC형 메인 메뉴: 사이버네온 사이드바 + 출격/무장/적특성.
+## PC형 메인 메뉴: 출격/무장/적특성 + 테마 설정.
 
 enum Tab { PLAY, EQUIP, CODEX }
 
 const ICON_DIR := "res://assets/icons/"
-const BG_PATH := "res://assets/ui/menu_bg.jpg"
 
 var _tab: int = Tab.PLAY
 var _detail_id: String = ""
 var _nav_btns: Array[Button] = []
 
 @onready var bg: TextureRect = $Root/Bg
+@onready var bg_dim: ColorRect = $Root/BgDim
 @onready var side_bar: PanelContainer = $Root/Layout/SideBar
 @onready var brand: Label = $Root/Layout/SideBar/SideVBox/Brand
 @onready var tagline: Label = $Root/Layout/SideBar/SideVBox/Tagline
@@ -28,34 +28,56 @@ var _nav_btns: Array[Button] = []
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
-	_setup_background()
-	side_bar.add_theme_stylebox_override("panel", UiTheme.panel_style())
-	UiTheme.apply_font(brand, 28, UiTheme.C_TEXT, "semibold")
-	UiTheme.apply_font(tagline, 13, UiTheme.C_MUTED, "regular")
+	if not UiTheme.theme_changed.is_connected(_on_theme_changed):
+		UiTheme.theme_changed.connect(_on_theme_changed)
 	_nav_btns = [play_btn, equip_btn, codex_btn]
-	for b in _nav_btns:
-		UiTheme.style_button(b, false)
-	UiTheme.style_button(sound_btn, false)
 	play_btn.pressed.connect(func() -> void: _show_tab(Tab.PLAY))
 	equip_btn.pressed.connect(func() -> void: _show_tab(Tab.EQUIP))
 	codex_btn.pressed.connect(func() -> void: _show_tab(Tab.CODEX))
 	sound_btn.pressed.connect(_open_settings)
-	_build_play_page()
-	_build_equip_page()
-	_build_codex_page()
-	_show_tab(Tab.PLAY)
+	_rebuild_ui()
 	settings_modal.visible = false
 	detail_modal.visible = false
 	Sfx.ensure_web_unlocked()
 	Sfx.play_bgm(Sfx.BGM_LOBBY, false)
 
 
+func _on_theme_changed(_id: String) -> void:
+	var keep := _tab
+	var settings_open := settings_modal.visible
+	_rebuild_ui()
+	_show_tab(keep)
+	if settings_open:
+		_build_settings_modal()
+		settings_modal.visible = true
+
+
+func _rebuild_ui() -> void:
+	_setup_background()
+	_style_chrome()
+	_build_play_page()
+	_build_equip_page()
+	_build_codex_page()
+	_show_tab(_tab)
+
+
 func _setup_background() -> void:
-	if ResourceLoader.exists(BG_PATH):
-		bg.texture = load(BG_PATH)
+	var path := UiTheme.bg_texture_path()
+	if ResourceLoader.exists(path):
+		bg.texture = load(path)
 	else:
 		bg.texture = null
 		bg.modulate = Color(0.08, 0.1, 0.14)
+	bg_dim.color = UiTheme.C_DIM
+
+
+func _style_chrome() -> void:
+	side_bar.add_theme_stylebox_override("panel", UiTheme.panel_style())
+	UiTheme.apply_font(brand, 28, UiTheme.C_TEXT, "semibold")
+	UiTheme.apply_font(tagline, 13, UiTheme.C_MUTED, "medium")
+	for b in _nav_btns:
+		UiTheme.style_button(b, false)
+	UiTheme.style_button(sound_btn, false)
 
 
 func _show_tab(tab: int) -> void:
@@ -465,18 +487,41 @@ func _refresh_play_tip() -> void:
 func _build_settings_modal() -> void:
 	for c in settings_modal.get_children():
 		c.queue_free()
-	settings_modal.color = Color(0.01, 0.03, 0.06, 0.82)
+	settings_modal.color = Color(UiTheme.C_DIM.r, UiTheme.C_DIM.g, UiTheme.C_DIM.b, 0.82)
 	var center := CenterContainer.new()
 	center.set_anchors_preset(Control.PRESET_FULL_RECT)
 	settings_modal.add_child(center)
 	var panel := PanelContainer.new()
 	panel.add_theme_stylebox_override("panel", UiTheme.panel_style())
-	panel.custom_minimum_size = Vector2(420, 320)
+	panel.custom_minimum_size = Vector2(520, 460)
 	center.add_child(panel)
 	var v := VBoxContainer.new()
 	v.add_theme_constant_override("separation", 12)
 	panel.add_child(v)
-	v.add_child(_section_title("사운드 설정", 22))
+	v.add_child(_section_title("설정", 22))
+	v.add_child(_muted_label("테마", 15))
+	var theme_grid := GridContainer.new()
+	theme_grid.columns = 2
+	theme_grid.add_theme_constant_override("h_separation", 8)
+	theme_grid.add_theme_constant_override("v_separation", 8)
+	theme_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	for tid in UiTheme.THEME_ORDER:
+		var tb := _make_btn(str(UiTheme.THEME_NAMES[tid]), Vector2(0, 44))
+		tb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		var active := tid == UiTheme.theme_id
+		UiTheme.style_button(tb, active)
+		var captured: String = tid
+		tb.pressed.connect(func() -> void:
+			Loadout.set_ui_theme(captured)
+			UiTheme.apply_theme(captured, true)
+		)
+		theme_grid.add_child(tb)
+	v.add_child(theme_grid)
+	var cur := Label.new()
+	cur.text = "현재: %s" % str(UiTheme.THEME_NAMES.get(UiTheme.theme_id, UiTheme.theme_id))
+	UiTheme.apply_font(cur, 14, UiTheme.C_MUTED, "medium")
+	v.add_child(cur)
+	v.add_child(_muted_label("사운드", 15))
 	v.add_child(_volume_row("마스터", "master", Sfx.volume_master))
 	v.add_child(_volume_row("BGM", "bgm", Sfx.volume_bgm))
 	v.add_child(_volume_row("효과음", "sfx", Sfx.volume_sfx))

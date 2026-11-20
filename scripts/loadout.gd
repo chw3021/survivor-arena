@@ -10,6 +10,7 @@ const SAVE_PATH := "user://survivor_settings.cfg"
 var primary_id: String = "pistol"
 var secondary_id: String = "shotgun"
 var difficulty: String = "normal" # easy | normal | hard
+var ui_theme_id: String = "stone"
 
 const DIFFICULTY_MULT := {
 	"easy": 0.75,
@@ -59,11 +60,18 @@ func set_difficulty(id: String) -> void:
 	save_settings()
 
 
+func set_ui_theme(id: String) -> void:
+	ui_theme_id = id
+	save_settings()
+	settings_changed.emit()
+
+
 func save_settings() -> void:
 	var cfg := ConfigFile.new()
 	cfg.set_value("loadout", "primary", primary_id)
 	cfg.set_value("loadout", "secondary", secondary_id)
 	cfg.set_value("run", "difficulty", difficulty)
+	cfg.set_value("ui", "theme", ui_theme_id)
 	cfg.set_value("audio", "master", Sfx.volume_master)
 	cfg.set_value("audio", "bgm", Sfx.volume_bgm)
 	cfg.set_value("audio", "sfx", Sfx.volume_sfx)
@@ -77,6 +85,7 @@ func load_settings() -> void:
 	primary_id = str(cfg.get_value("loadout", "primary", primary_id))
 	secondary_id = str(cfg.get_value("loadout", "secondary", secondary_id))
 	difficulty = str(cfg.get_value("run", "difficulty", difficulty))
+	ui_theme_id = str(cfg.get_value("ui", "theme", ui_theme_id))
 	Sfx.volume_master = clampf(float(cfg.get_value("audio", "master", Sfx.volume_master)), 0.0, 1.0)
 	Sfx.volume_bgm = clampf(float(cfg.get_value("audio", "bgm", Sfx.volume_bgm)), 0.0, 1.0)
 	Sfx.volume_sfx = clampf(float(cfg.get_value("audio", "sfx", Sfx.volume_sfx)), 0.0, 1.0)

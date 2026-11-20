@@ -98,7 +98,7 @@ text = "적 특성"
 [node name="SoundBtn" type="Button" parent="Root/Layout/SideBar/SideVBox"]
 custom_minimum_size = Vector2(0, 42)
 layout_mode = 2
-text = "사운드 설정"
+text = "설정"
 
 [node name="MainPane" type="Control" parent="Root/Layout"]
 layout_mode = 2
