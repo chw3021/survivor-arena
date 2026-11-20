@@ -464,6 +464,33 @@ func contrast_on(bg: Color) -> Color:
 	return Color(0.99, 0.98, 0.96, 1.0)
 
 
+func is_light_surface() -> bool:
+	return C_SLOT.get_luminance() > 0.55 or C_PANEL.get_luminance() > 0.55
+
+
+## 밝은 패널(꼬질/심플) 위에서 노랑/연한 속성색이 안 죽는 버전.
+func readable_color(c: Color, against: Color = Color(-1, -1, -1, -1)) -> Color:
+	var bg := against if against.a >= 0.0 else C_SLOT
+	var bg_lum := bg.get_luminance()
+	var c_lum := c.get_luminance()
+	if bg_lum > 0.55 and c_lum > 0.42:
+		var h := c.h
+		var s := clampf(c.s * 1.35, 0.55, 1.0)
+		var v := clampf(c.v * 0.42, 0.22, 0.48)
+		if c_lum > 0.75 and c.s < 0.2:
+			# 거의 흰/회색 라벨 -> 잉크색
+			return Color(0.28, 0.22, 0.18, 1.0)
+		return Color.from_hsv(h, s, v, 1.0)
+	if bg_lum < 0.35 and c_lum < 0.28:
+		return c.lightened(0.35)
+	return c
+
+
+func type_color(dmg_type: int) -> Color:
+	var base: Color = DamageTypes.TYPE_COLORS.get(dmg_type, Color(0.85, 0.9, 0.95))
+	return readable_color(base)
+
+
 func button_label_color(kind: String = "normal") -> Color:
 	match kind:
 		"hover":

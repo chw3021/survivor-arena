@@ -2,7 +2,7 @@ extends Control
 
 ## PC형 메인 메뉴: 출격/무장/적특성 + 테마 설정.
 
-enum Tab { PLAY, EQUIP, CODEX }
+enum Tab { PLAY, EQUIP, CODEX, NONE }
 
 const ICON_DIR := "res://assets/icons/"
 
@@ -31,9 +31,9 @@ func _ready() -> void:
 	if not UiTheme.theme_changed.is_connected(_on_theme_changed):
 		UiTheme.theme_changed.connect(_on_theme_changed)
 	_nav_btns = [play_btn, equip_btn, codex_btn]
-	play_btn.pressed.connect(func() -> void: _show_tab(Tab.PLAY))
-	equip_btn.pressed.connect(func() -> void: _show_tab(Tab.EQUIP))
-	codex_btn.pressed.connect(func() -> void: _show_tab(Tab.CODEX))
+	play_btn.pressed.connect(func() -> void: _toggle_tab(Tab.PLAY))
+	equip_btn.pressed.connect(func() -> void: _toggle_tab(Tab.EQUIP))
+	codex_btn.pressed.connect(func() -> void: _toggle_tab(Tab.CODEX))
 	sound_btn.pressed.connect(_open_settings)
 	_rebuild_ui()
 	settings_modal.visible = false
@@ -102,19 +102,28 @@ func _mount_skinned_panel(parent: Control, full_rect: bool = true, min_size: Vec
 	return panel
 
 
+func _toggle_tab(tab: int) -> void:
+	if _tab == tab:
+		_show_tab(Tab.NONE)
+	else:
+		_show_tab(tab)
+
+
 func _show_tab(tab: int) -> void:
 	_tab = tab
 	play_page.visible = tab == Tab.PLAY
 	equip_page.visible = tab == Tab.EQUIP
 	codex_page.visible = tab == Tab.CODEX
-	var active: Button = play_btn
+	var active: Button = null
 	match tab:
+		Tab.PLAY:
+			active = play_btn
 		Tab.EQUIP:
 			active = equip_btn
 		Tab.CODEX:
 			active = codex_btn
 		_:
-			active = play_btn
+			active = null
 	for b in _nav_btns:
 		UiTheme.style_button(b, b == active)
 	if tab == Tab.EQUIP:
@@ -189,7 +198,7 @@ func _build_play_page() -> void:
 
 	var tip := Label.new()
 	tip.name = "LoadoutTip"
-	UiTheme.apply_font(tip, 15, Color(0.85, 0.92, 0.55), "medium")
+	UiTheme.apply_font(tip, 15, UiTheme.readable_color(Color(0.85, 0.92, 0.55)), "medium")
 	v.add_child(tip)
 	_refresh_play_tip()
 
@@ -312,7 +321,7 @@ func _build_codex_page() -> void:
 		row.add_child(swatch)
 		var lab := Label.new()
 		lab.text = str(DamageTypes.TYPE_NAMES[dtype])
-		UiTheme.apply_font(lab, 14, DamageTypes.TYPE_COLORS[dtype], "medium")
+		UiTheme.apply_font(lab, 14, UiTheme.type_color(dtype), "medium")
 		row.add_child(lab)
 		rv.add_child(row)
 	v.add_child(rule)
@@ -362,7 +371,7 @@ func _codex_card(e: Dictionary) -> PanelContainer:
 	col.add_child(desc)
 	var tip := Label.new()
 	tip.text = str(e["tip"])
-	UiTheme.apply_font(tip, 13, Color(0.7, 0.95, 0.85), "medium")
+	UiTheme.apply_font(tip, 13, UiTheme.readable_color(Color(0.7, 0.95, 0.85)), "medium")
 	col.add_child(tip)
 	return panel
 
@@ -428,7 +437,7 @@ func _inventory_cell(w: Dictionary) -> PanelContainer:
 	var meta := Label.new()
 	meta.text = WeaponCatalog.type_label(int(w["dmg_type"]))
 	meta.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	UiTheme.apply_font(meta, 14, DamageTypes.TYPE_COLORS.get(int(w["dmg_type"]), Color(0.85, 0.9, 0.95)), "medium")
+	UiTheme.apply_font(meta, 14, UiTheme.type_color(int(w["dmg_type"])), "medium")
 	meta.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	v.add_child(meta)
 
@@ -436,14 +445,14 @@ func _inventory_cell(w: Dictionary) -> PanelContainer:
 		var badge := Label.new()
 		badge.text = "주무기"
 		badge.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		UiTheme.apply_font(badge, 11, UiTheme.C_ACCENT, "medium")
+		UiTheme.apply_font(badge, 11, UiTheme.readable_color(UiTheme.C_ACCENT), "medium")
 		badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		v.add_child(badge)
 	elif id == Loadout.secondary_id:
 		var badge2 := Label.new()
 		badge2.text = "보조"
 		badge2.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		UiTheme.apply_font(badge2, 11, Color(0.95, 0.85, 0.55), "medium")
+		UiTheme.apply_font(badge2, 11, UiTheme.readable_color(Color(0.95, 0.85, 0.55)), "medium")
 		badge2.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		v.add_child(badge2)
 
@@ -485,7 +494,7 @@ func _slot_card(title: String, weapon_id: String, _slot_key: String) -> PanelCon
 		float(w.get("damage", 0.0)),
 		int(w.get("ammo", 0)),
 	]
-	UiTheme.apply_font(meta, 13, Color(0.8, 0.9, 0.7), "regular")
+	UiTheme.apply_font(meta, 13, UiTheme.readable_color(Color(0.55, 0.48, 0.28)), "regular")
 	v.add_child(meta)
 	var open := _make_btn("상세", Vector2(90, 36))
 	open.pressed.connect(_open_detail.bind(weapon_id))
@@ -617,7 +626,7 @@ func _open_detail(id: String) -> void:
 
 	var type_l := Label.new()
 	type_l.text = "속성: %s" % WeaponCatalog.type_label(int(w["dmg_type"]))
-	UiTheme.apply_font(type_l, 16, DamageTypes.TYPE_COLORS.get(int(w["dmg_type"]), Color.WHITE), "medium")
+	UiTheme.apply_font(type_l, 16, UiTheme.type_color(int(w["dmg_type"])), "medium")
 	col.add_child(type_l)
 
 	var lines := [
