@@ -6,7 +6,7 @@ config_version=5
 
 config/name="Survivor Arena"
 config/description="Vampire Survivors-like prototype for Steam + GitHub Pages"
-run/main_scene="res://scenes/main.tscn"
+run/main_scene="res://scenes/loading.tscn"
 config/features=PackedStringArray("4.7", "Forward Plus")
 config/icon="res://icon.svg"
 
@@ -19,6 +19,7 @@ buses/default_bus_layout="res://default_bus_layout.tres"
 Game="*res://scripts/game.gd"
 Sfx="*res://scripts/sfx.gd"
 Vfx="*res://scripts/vfx.gd"
+Loadout="*res://scripts/loadout.gd"
 
 [display]
 

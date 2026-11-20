@@ -1,5 +1,7 @@
 extends CharacterBody2D
 
+const XP_GEM_SCENE := preload("res://scenes/xp_gem.tscn")
+
 @export var max_hp: float = 30.0
 @export var move_speed: float = 95.0
 @export var touch_damage: float = 10.0
@@ -23,7 +25,6 @@ func setup(player: Node2D, difficulty: float = 1.0, forced_armor: int = -1) -> v
 	target = player
 	armor = forced_armor if forced_armor >= 0 else DamageTypes.random_armor()
 	max_hp = 30.0 * difficulty
-	# 중장갑은 체력 보너스, 특수장갑은 이속 보너스, 경장갑은 기본.
 	match armor:
 		DamageTypes.Armor.HEAVY:
 			max_hp *= 1.35
@@ -79,11 +80,23 @@ func take_damage(
 	if from_pos != Vector2.ZERO and knock_force > 0.0:
 		var knock := (global_position - from_pos).normalized() * knock_force
 		global_position += knock
+	Vfx.burst(global_position, DamageTypes.TYPE_COLORS.get(dmg_type, Color.WHITE), 4, 55.0, 0.12)
 	await get_tree().create_timer(0.06).timeout
 	if is_instance_valid(body_visual):
 		body_visual.color = base_color
 	if hp <= 0.0:
 		Game.add_kill()
-		if target != null and is_instance_valid(target) and target.has_method("add_xp"):
-			target.add_xp(1)
+		_drop_xp()
+		Vfx.burst(global_position, base_color, 10, 100.0, 0.28)
 		queue_free()
+
+
+func _drop_xp() -> void:
+	var gem := XP_GEM_SCENE.instantiate() as Node2D
+	var parent := get_parent()
+	if parent == null:
+		return
+	parent.add_child(gem)
+	gem.global_position = global_position + Vector2(randf_range(-8, 8), randf_range(-8, 8))
+	if gem.has_method("setup"):
+		gem.setup(target, 1)

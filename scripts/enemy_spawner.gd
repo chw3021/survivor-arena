@@ -91,7 +91,7 @@ func _spawn_one() -> void:
 	get_parent().add_child(enemy)
 	if enemy.has_method("setup"):
 		# Difficulty scales with wave + run time; leftover waves keep their stats.
-		var difficulty := 1.0 + float(_wave - 1) * 0.18 + Game.elapsed / 50.0
+		var difficulty := (1.0 + float(_wave - 1) * 0.18 + Game.elapsed / 50.0) * Loadout.difficulty_mult()
 		enemy.setup(player, difficulty)
 
 

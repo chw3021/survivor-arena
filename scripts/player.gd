@@ -12,7 +12,7 @@ signal passive_choice_offered(options: Array)
 @export var max_hp: float = 100.0
 
 var hp: float = 100.0
-var weapon_index: int = 0
+var weapon_slot: int = 0 # 0=primary, 1=secondary
 var attack_cooldown_left: float = 0.0
 var dash_left: float = 0.0
 var dash_cd_left: float = 0.0
@@ -53,14 +53,46 @@ var _tesla_cd: float = 0.0
 @onready var attack_area: Area2D = $AttackArea
 @onready var attack_shape: CollisionShape2D = $AttackArea/CollisionShape2D
 
+var ammo_label: Label
+
 
 func _ready() -> void:
 	hp = max_hp
 	attack_area.monitoring = false
 	attack_shape.disabled = true
+	_setup_ammo_label()
 	_reset_ammo()
 	_update_visual()
+	_refresh_ammo_label()
 	stats_changed.emit()
+
+
+func _setup_ammo_label() -> void:
+	ammo_label = Label.new()
+	ammo_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	ammo_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	ammo_label.position = Vector2(-48, -52)
+	ammo_label.size = Vector2(96, 22)
+	ammo_label.z_index = 20
+	if ResourceLoader.exists("res://fonts/Jua-Regular.ttf"):
+		ammo_label.add_theme_font_override("font", load("res://fonts/Jua-Regular.ttf"))
+	ammo_label.add_theme_font_size_override("font_size", 15)
+	ammo_label.add_theme_color_override("font_color", Color(0.95, 0.97, 1.0, 0.95))
+	ammo_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.75))
+	ammo_label.add_theme_constant_override("outline_size", 4)
+	add_child(ammo_label)
+
+
+func _refresh_ammo_label() -> void:
+	if ammo_label == null:
+		return
+	if reload_left > 0.0:
+		ammo_label.text = "장전중"
+		ammo_label.modulate = Color(1.0, 0.75, 0.35)
+	else:
+		var w := _current_weapon()
+		ammo_label.text = "%d/%d" % [ammo_left, int(w["ammo"])]
+		ammo_label.modulate = Color(1, 1, 1) if ammo_left > 2 else Color(1.0, 0.45, 0.4)
 
 
 func _physics_process(delta: float) -> void:
@@ -97,6 +129,7 @@ func _tick_timers(delta: float) -> void:
 	if reload_left <= 0.0 and ammo_left <= 0:
 		_reset_ammo()
 
+	_refresh_ammo_label()
 	stats_changed.emit()
 
 
@@ -116,9 +149,9 @@ func _handle_actions() -> void:
 	if Input.is_action_just_pressed("dash"):
 		_try_dash()
 	if Input.is_action_just_pressed("weapon_next"):
-		weapon_index = (weapon_index + 1) % WeaponCatalog.count()
+		weapon_slot = 1 - weapon_slot
 		_reset_ammo()
-		Sfx.play("weapon_switch", 1.0 + weapon_index * 0.02)
+		Sfx.play("weapon_switch", 1.0 + weapon_slot * 0.05)
 		stats_changed.emit()
 	if Input.is_action_just_pressed("active_item"):
 		_try_active()
@@ -265,7 +298,7 @@ func _active_magnet_storm(dmg: float, dtype: int) -> void:
 
 func _attack(dir: Vector2) -> void:
 	facing = dir
-	var weapon: Dictionary = WeaponCatalog.get_weapon(weapon_index)
+	var weapon: Dictionary = _current_weapon()
 	if ammo_left <= 0:
 		_start_reload(float(weapon["reload"]))
 		return
@@ -326,6 +359,10 @@ func _projectile_attack(dir: Vector2, weapon: Dictionary) -> void:
 
 
 func _spawn_bullet(dir: Vector2, weapon: Dictionary) -> void:
+	var dtype: int = int(weapon["dmg_type"])
+	var color: Color = DamageTypes.TYPE_COLORS[dtype]
+	Vfx.muzzle_flash(global_position + dir * 22.0, dir, color)
+
 	var bolt := Area2D.new()
 	bolt.collision_layer = 0
 	bolt.collision_mask = 2
@@ -335,12 +372,7 @@ func _spawn_bullet(dir: Vector2, weapon: Dictionary) -> void:
 	circle.radius = 7.0
 	shape.shape = circle
 	bolt.add_child(shape)
-
-	var dtype: int = int(weapon["dmg_type"])
-	var visual := Polygon2D.new()
-	visual.color = DamageTypes.TYPE_COLORS[dtype]
-	visual.polygon = PackedVector2Array([Vector2(-6, -3), Vector2(10, 0), Vector2(-6, 3)])
-	bolt.add_child(visual)
+	bolt.add_child(Vfx.projectile_visual(dtype, "bullet"))
 
 	get_parent().add_child(bolt)
 	bolt.global_position = global_position + dir * 24.0
@@ -352,6 +384,7 @@ func _spawn_bullet(dir: Vector2, weapon: Dictionary) -> void:
 	var pierce_left: int = int(weapon["pierce"])
 	var traveled := 0.0
 	var hit_ids: Dictionary = {}
+	var trail_acc := 0.0
 
 	bolt.body_entered.connect(func(body: Node) -> void:
 		if not is_instance_valid(bolt):
@@ -363,6 +396,7 @@ func _spawn_bullet(dir: Vector2, weapon: Dictionary) -> void:
 			return
 		hit_ids[id] = true
 		_deal_to(body, damage, dtype, false, 28.0)
+		Vfx.hit_spark(body.global_position, color)
 		if pierce_left <= 0:
 			bolt.queue_free()
 		else:
@@ -373,6 +407,10 @@ func _spawn_bullet(dir: Vector2, weapon: Dictionary) -> void:
 		var step: float = speed / float(Engine.physics_ticks_per_second)
 		bolt.global_position += dir * step
 		traveled += step
+		trail_acc += step
+		if trail_acc >= 18.0:
+			trail_acc = 0.0
+			Vfx.trail_dot(bolt.global_position, color)
 		await get_tree().physics_frame
 
 	if is_instance_valid(bolt):
@@ -380,7 +418,10 @@ func _spawn_bullet(dir: Vector2, weapon: Dictionary) -> void:
 
 
 func _cone_attack(dir: Vector2, damage: float, reach: float, spread: float, dtype: int) -> void:
-	Vfx.burst(global_position + dir * 40.0, DamageTypes.TYPE_COLORS[dtype], 8, 90.0, 0.2)
+	var color: Color = DamageTypes.TYPE_COLORS[dtype]
+	Vfx.muzzle_flash(global_position + dir * 20.0, dir, color)
+	Vfx.burst(global_position + dir * 40.0, color, 12, 110.0, 0.22)
+	Vfx.ring(global_position + dir * 50.0, color, 28.0, 0.12)
 	for body in get_tree().get_nodes_in_group("enemies"):
 		if not is_instance_valid(body):
 			continue
@@ -394,7 +435,11 @@ func _cone_attack(dir: Vector2, damage: float, reach: float, spread: float, dtyp
 
 
 func _beam_attack(dir: Vector2, damage: float, reach: float, dtype: int, stun: float) -> void:
-	Vfx.burst(global_position + dir * (reach * 0.5), DamageTypes.TYPE_COLORS[dtype], 6, 60.0, 0.18)
+	var color: Color = DamageTypes.TYPE_COLORS[dtype]
+	Vfx.muzzle_flash(global_position + dir * 18.0, dir, color)
+	for i in range(4):
+		Vfx.trail_dot(global_position + dir * (reach * (0.2 + i * 0.2)), color)
+	Vfx.burst(global_position + dir * (reach * 0.5), color, 8, 70.0, 0.18)
 	Sfx.play("electric", 1.15)
 	for body in get_tree().get_nodes_in_group("enemies"):
 		if not is_instance_valid(body):
@@ -420,14 +465,10 @@ func _emp_orb_attack(dir: Vector2, damage: float, reach: float, speed: float, ao
 	circle.radius = 10.0
 	shape.shape = circle
 	orb.add_child(shape)
-	var visual := Polygon2D.new()
-	visual.color = DamageTypes.TYPE_COLORS[dtype]
-	visual.polygon = PackedVector2Array([
-		Vector2(-8, -8), Vector2(8, -8), Vector2(8, 8), Vector2(-8, 8)
-	])
-	orb.add_child(visual)
+	orb.add_child(Vfx.projectile_visual(dtype, "orb"))
 	get_parent().add_child(orb)
 	orb.global_position = global_position + dir * 22.0
+	Vfx.muzzle_flash(orb.global_position, dir, DamageTypes.TYPE_COLORS[dtype])
 
 	var traveled := 0.0
 	var exploded := false
@@ -602,13 +643,29 @@ func _start_reload(duration: float) -> void:
 		return
 	reload_left = duration
 	ammo_left = 0
-	Sfx.play("reload", randf_range(0.95, 1.05))
+	var w := _current_weapon()
+	# Heavy mags (sniper / MG) get a lower, longer reload feel.
+	var pitch := 0.82 if float(w["reload"]) >= 1.3 else 1.0
+	Sfx.play("reload", pitch * randf_range(0.97, 1.04), 0.0)
+	_refresh_ammo_label()
 
 
 func _reset_ammo() -> void:
-	var weapon := WeaponCatalog.get_weapon(weapon_index)
+	var weapon := _current_weapon()
 	ammo_left = int(weapon["ammo"])
 	reload_left = 0.0
+	_refresh_ammo_label()
+
+
+func _current_weapon_id() -> String:
+	return Loadout.secondary_id if weapon_slot == 1 else Loadout.primary_id
+
+
+func _current_weapon() -> Dictionary:
+	var w := WeaponCatalog.get_by_id(_current_weapon_id())
+	if w.is_empty():
+		return WeaponCatalog.get_weapon(0)
+	return w
 
 
 func _resolve_enemy_touch(delta: float) -> void:
@@ -646,9 +703,10 @@ func take_damage(amount: float, from_self: bool = false) -> void:
 
 
 func get_weapon_name() -> String:
-	var w := WeaponCatalog.get_weapon(weapon_index)
+	var w := _current_weapon()
 	var tname: String = DamageTypes.TYPE_NAMES[int(w["dmg_type"])]
-	return "%s(%s)" % [str(w["name"]), tname]
+	var slot_name := "주" if weapon_slot == 0 else "부"
+	return "%s/%s(%s)" % [slot_name, str(w["name"]), tname]
 
 
 func get_active_name() -> String:
@@ -671,7 +729,7 @@ func get_active_ready_ratio() -> float:
 func get_ammo_text() -> String:
 	if reload_left > 0.0:
 		return "장전중"
-	var w := WeaponCatalog.get_weapon(weapon_index)
+	var w := _current_weapon()
 	return "%d/%d" % [ammo_left, int(w["ammo"])]
 
 

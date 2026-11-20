@@ -1,13 +1,22 @@
 extends CanvasLayer
 
-@onready var hp_bar: ProgressBar = $Root/VBox/HpBar
-@onready var info_label: Label = $Root/VBox/InfoLabel
+@onready var hp_bar: ProgressBar = $Root/TopRight/HpCol/HpBar
+@onready var hp_label: Label = $Root/TopRight/HpCol/HpLabel
+@onready var xp_bar: ProgressBar = $Root/TopRight/HpCol/XpBar
+@onready var xp_label: Label = $Root/TopRight/HpCol/XpLabel
+@onready var active_icon: ColorRect = $Root/TopLeft/ActiveRow/ActiveIcon
+@onready var active_name: Label = $Root/TopLeft/ActiveRow/ActiveInfo/ActiveName
+@onready var active_cd: Label = $Root/TopLeft/ActiveRow/ActiveInfo/ActiveCd
+@onready var status_label: Label = $Root/StatusPanel/StatusLabel
 @onready var help_label: Label = $Root/HelpLabel
 @onready var overlay: ColorRect = $Root/Overlay
 @onready var overlay_label: Label = $Root/Overlay/OverlayLabel
 @onready var passive_select: ColorRect = $Root/PassiveSelect
 @onready var passive_title: Label = $Root/PassiveSelect/Title
 @onready var card_row: HBoxContainer = $Root/PassiveSelect/CardRow
+@onready var top_left: PanelContainer = $Root/TopLeft
+@onready var top_right: PanelContainer = $Root/TopRight
+@onready var status_panel: PanelContainer = $Root/StatusPanel
 
 var player: Node
 var _offer_ids: Array[String] = []
@@ -31,21 +40,42 @@ func setup(p: Node) -> void:
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	_style_panels()
 	_apply_ui_font()
-	help_label.text = "WASD 이동 | 방향키 공격 | Space 대시 | Q 무기 | E 액티브(1개) | 5렙 패시브 카드"
+	help_label.text = "WASD 이동 | 방향키 공격 | Space 대시 | Q 주/부무기 | E 액티브 | 초록 젬=경험치 | Esc 메뉴"
 	overlay.visible = false
 	passive_select.visible = false
 	passive_title.text = "패시브 강화 — 카드 1개를 선택하세요 (1 / 2 / 3)"
 	_ensure_card_buttons()
 
 
+func _style_panels() -> void:
+	for panel in [top_left, top_right, status_panel]:
+		var box := StyleBoxFlat.new()
+		box.bg_color = Color(0.07, 0.09, 0.12, 0.82)
+		box.set_corner_radius_all(10)
+		box.content_margin_left = 12
+		box.content_margin_right = 12
+		box.content_margin_top = 10
+		box.content_margin_bottom = 10
+		box.border_color = Color(1, 1, 1, 0.08)
+		box.set_border_width_all(1)
+		panel.add_theme_stylebox_override("panel", box)
+
+
 func _apply_ui_font() -> void:
-	# Web default font often lacks Hangul glyphs; force bundled KR font.
 	if ResourceLoader.exists("res://fonts/Jua-Regular.ttf"):
 		_ui_font = load("res://fonts/Jua-Regular.ttf")
 	if _ui_font == null:
 		return
-	for node in [info_label, help_label, overlay_label, passive_title]:
+	var labels: Array = [
+		hp_label, xp_label, active_name, active_cd, status_label, help_label,
+		overlay_label, passive_title,
+		$Root/TopLeft/ActiveRow/ActiveInfo/ActiveTitle,
+		$Root/TopRight/HpCol/HpTitle,
+		$Root/TopRight/HpCol/XpTitle,
+	]
+	for node in labels:
 		if node:
 			node.add_theme_font_override("font", _ui_font)
 
@@ -55,14 +85,14 @@ func _ensure_card_buttons() -> void:
 		return
 	for i in range(3):
 		var btn := Button.new()
-		btn.custom_minimum_size = Vector2(220, 220)
+		btn.custom_minimum_size = Vector2(230, 240)
 		btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		btn.clip_text = false
 		btn.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		btn.alignment = HORIZONTAL_ALIGNMENT_CENTER
 		if _ui_font:
 			btn.add_theme_font_override("font", _ui_font)
-			btn.add_theme_font_size_override("font_size", 16)
+			btn.add_theme_font_size_override("font_size", 17)
 		btn.pressed.connect(_on_card_pressed.bind(i))
 		card_row.add_child(btn)
 		_card_buttons.append(btn)
@@ -73,25 +103,36 @@ func _refresh(_arg: Variant = null) -> void:
 		return
 	if not ("max_hp" in player):
 		return
+
 	hp_bar.max_value = player.max_hp
 	hp_bar.value = player.hp
+	hp_label.text = "%d / %d" % [int(player.hp), int(player.max_hp)]
+
+	xp_bar.max_value = maxf(1.0, float(player.xp_to_next))
+	xp_bar.value = float(player.xp)
+	xp_label.text = "Lv %d   %d / %d" % [int(player.level), int(player.xp), int(player.xp_to_next)]
+
+	var def := ActiveCatalog.get_by_id(str(player.active_id))
+	var dtype: int = int(def["dmg_type"])
+	active_icon.color = DamageTypes.TYPE_COLORS.get(dtype, Color(0.8, 0.8, 0.85))
+	active_name.text = str(def["name"])
+	var ready := float(player.get_active_ready_ratio())
+	if ready >= 0.999:
+		active_cd.text = "준비 완료  ·  E"
+		active_cd.modulate = Color(0.75, 1.0, 0.7)
+	else:
+		active_cd.text = "재사용 %.0f%%" % (ready * 100.0)
+		active_cd.modulate = Color(1.0, 0.85, 0.55)
+
 	var t := int(Game.elapsed)
 	var mm := t / 60
 	var ss := t % 60
-	var stage := int(Game.elapsed / 60.0) + 1
-	info_label.text = "HP %d/%d | Lv%d XP %d/%d | %s ammo %s | Active %s %.0f%% | Dash %.0f%% | Wave %d | Stage %d | Kills %d | %02d:%02d\nPassive: %s" % [
-		int(player.hp),
-		int(player.max_hp),
-		int(player.level),
-		int(player.xp),
-		int(player.xp_to_next),
+	var diff_name: String = str(Loadout.DIFFICULTY_NAMES.get(Loadout.difficulty, Loadout.difficulty))
+	status_label.text = "난이도  %s\n무기  %s\n대시  %.0f%%   ·   Wave %d\n처치 %d   ·   %02d:%02d\n패시브  %s" % [
+		diff_name,
 		player.get_weapon_name(),
-		player.get_ammo_text(),
-		player.get_active_name(),
-		player.get_active_ready_ratio() * 100.0,
 		player.get_dash_ready_ratio() * 100.0,
 		Game.wave,
-		stage,
 		Game.kills,
 		mm,
 		ss,
@@ -157,7 +198,13 @@ func _on_player_died() -> void:
 	Game.running = false
 	passive_select.visible = false
 	overlay.visible = true
-	overlay_label.text = "You Died\nKills: %d\nPress R to restart" % Game.kills
+	overlay_label.text = "전투 종료\n처치: %d\nR 재시작  ·  M 메뉴" % Game.kills
+
+
+func _go_menu() -> void:
+	get_tree().paused = false
+	Game.reset()
+	get_tree().change_scene_to_file("res://scenes/main_menu.tscn")
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -174,7 +221,15 @@ func _unhandled_input(event: InputEvent) -> void:
 				get_viewport().set_input_as_handled()
 		return
 
-	if overlay.visible and event is InputEventKey and event.pressed and event.keycode == KEY_R:
-		get_tree().paused = false
-		get_tree().reload_current_scene()
-		Game.reset()
+	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_ESCAPE:
+		_go_menu()
+		get_viewport().set_input_as_handled()
+		return
+
+	if overlay.visible and event is InputEventKey and event.pressed:
+		if event.keycode == KEY_R:
+			get_tree().paused = false
+			get_tree().reload_current_scene()
+			Game.reset()
+		elif event.keycode == KEY_M:
+			_go_menu()

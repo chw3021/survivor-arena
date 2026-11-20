@@ -145,3 +145,21 @@ static func count() -> int:
 
 static func get_weapon(index: int) -> Dictionary:
 	return WEAPONS[wrapi(index, 0, WEAPONS.size())]
+
+
+static func get_by_id(id: String) -> Dictionary:
+	for w in WEAPONS:
+		if str(w["id"]) == id:
+			return w
+	return {}
+
+
+static func index_of(id: String) -> int:
+	for i in range(WEAPONS.size()):
+		if str(WEAPONS[i]["id"]) == id:
+			return i
+	return 0
+
+
+static func type_label(dmg_type: int) -> String:
+	return str(DamageTypes.TYPE_NAMES.get(dmg_type, "일반"))
