@@ -11,4 +11,7 @@ mv -f "$OUT/index.html" "$OUT/play.html"
 cp "$ROOT/site/index.html" "$OUT/index.html"
 mkdir -p "$OUT/docs"
 cp -r "$ROOT/site/docs/." "$OUT/docs/"
-echo "Done. Hub/play/docs assembled under build/web."
+# HTML5 BGM outside PCK
+mkdir -p "$OUT/bgm"
+cp -f "$ROOT/assets/bgm/"*.wav "$OUT/bgm/"
+echo "Done. Hub/play/docs/bgm assembled under build/web."

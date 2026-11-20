@@ -22,5 +22,10 @@ $DocsDir = Join-Path $OutDir "docs"
 New-Item -ItemType Directory -Force -Path $DocsDir | Out-Null
 Copy-Item -Recurse -Force (Join-Path $Root "site\docs\*") $DocsDir
 
-Write-Host "Done. Hub: build/web/index.html | Play: build/web/play.html | Docs: build/web/docs/"
+# HTML5 BGM (PCK 밖 URL). play.html 기준 bgm/arena.wav
+$BgmOut = Join-Path $OutDir "bgm"
+New-Item -ItemType Directory -Force -Path $BgmOut | Out-Null
+Copy-Item -Force (Join-Path $Root "assets\bgm\*.wav") $BgmOut
+
+Write-Host "Done. Hub: build/web/index.html | Play: build/web/play.html | Docs: build/web/docs/ | BGM: build/web/bgm/"
 Write-Host "Example: npx --yes serve build/web"

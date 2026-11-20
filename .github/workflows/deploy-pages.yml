@@ -40,6 +40,9 @@ jobs:
           cp site/index.html build/web/index.html
           mkdir -p build/web/docs
           cp -r site/docs/. build/web/docs/
+          # HTML5 BGM outside PCK (see CompanyDefense godot-web-audio.md)
+          mkdir -p build/web/bgm
+          cp -f assets/bgm/*.wav build/web/bgm/
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3

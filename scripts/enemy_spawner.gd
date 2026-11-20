@@ -4,16 +4,19 @@ extends Node2D
 ## Spawns just outside the camera view around the player.
 
 @export var enemy_scene: PackedScene
+@export var pickup_scene: PackedScene
 @export var max_enemies: int = 80
 @export var wave_duration: float = 25.0
 @export var spawn_margin: float = 48.0
 @export var base_spawn_interval: float = 1.25
 @export var min_spawn_interval: float = 0.28
+@export var pickup_interval: float = 22.0
 
 var player: Node2D
 var _spawn_timer: float = 0.0
 var _wave_timer: float = 0.0
 var _wave: int = 1
+var _pickup_timer: float = 8.0
 
 
 func setup(p: Node2D) -> void:
@@ -21,11 +24,14 @@ func setup(p: Node2D) -> void:
 	_wave = 1
 	_wave_timer = wave_duration
 	_spawn_timer = 0.35
+	_pickup_timer = 8.0
 	Game.set_wave(_wave)
 
 
 func _process(delta: float) -> void:
 	if player == null or not is_instance_valid(player):
+		return
+	if not Game.running:
 		return
 	if not ("alive" in player) or not player.alive:
 		return
@@ -33,6 +39,11 @@ func _process(delta: float) -> void:
 	_wave_timer -= delta
 	if _wave_timer <= 0.0:
 		_advance_wave()
+
+	_pickup_timer -= delta
+	if _pickup_timer <= 0.0:
+		_pickup_timer = pickup_interval
+		_spawn_pickup()
 
 	_spawn_timer -= delta
 	if _spawn_timer > 0.0:
@@ -82,6 +93,23 @@ func _spawn_one() -> void:
 		# Difficulty scales with wave + run time; leftover waves keep their stats.
 		var difficulty := 1.0 + float(_wave - 1) * 0.18 + Game.elapsed / 50.0
 		enemy.setup(player, difficulty)
+
+
+func _spawn_pickup() -> void:
+	if pickup_scene == null:
+		return
+	# Keep only one active pickup on the ground.
+	for node in get_tree().get_nodes_in_group("active_pickups"):
+		if is_instance_valid(node):
+			node.queue_free()
+	var pickup := pickup_scene.instantiate() as Node2D
+	var angle := randf() * TAU
+	var dist := randf_range(120.0, 220.0)
+	pickup.global_position = player.global_position + Vector2.RIGHT.rotated(angle) * dist
+	get_parent().add_child(pickup)
+	if pickup.has_method("setup"):
+		pickup.setup(ActiveCatalog.random_id())
+	pickup.add_to_group("active_pickups")
 
 
 func _spawn_pos_outside_view() -> Vector2:
