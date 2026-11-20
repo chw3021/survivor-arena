@@ -187,7 +187,7 @@ func _build_equip_page() -> void:
 		c.queue_free()
 	var root := VBoxContainer.new()
 	root.name = "RootVBox"
-	root.set_anchors_preset(Control.PRESET_FULL_RECT)
+	root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	root.add_theme_constant_override("separation", 12)
 	equip_page.add_child(root)
 
@@ -200,9 +200,13 @@ func _build_equip_page() -> void:
 	list_panel.name = "ListPanel"
 	list_panel.add_theme_stylebox_override("panel", UiTheme.panel_style())
 	list_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	list_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	root.add_child(list_panel)
 	var outer := VBoxContainer.new()
+	outer.name = "Outer"
 	outer.add_theme_constant_override("separation", 10)
+	outer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	outer.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	list_panel.add_child(outer)
 	var title := Label.new()
 	title.text = "보유 무기 인벤토리"
@@ -215,25 +219,37 @@ func _build_equip_page() -> void:
 	var scroll := ScrollContainer.new()
 	scroll.name = "Scroll"
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	outer.add_child(scroll)
 	var grid := GridContainer.new()
 	grid.name = "WeaponGrid"
 	grid.columns = 4
+	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	grid.add_theme_constant_override("h_separation", 10)
 	grid.add_theme_constant_override("v_separation", 10)
 	scroll.add_child(grid)
 
 
 func _refresh_equip_page() -> void:
-	var slots: HBoxContainer = equip_page.get_node("RootVBox/Slots")
-	for c in slots.get_children():
-		c.queue_free()
+	var root := equip_page.get_node_or_null("RootVBox")
+	if root == null:
+		_build_equip_page()
+		root = equip_page.get_node("RootVBox")
+	var slots: HBoxContainer = root.get_node("Slots")
+	while slots.get_child_count() > 0:
+		var sc := slots.get_child(0)
+		slots.remove_child(sc)
+		sc.free()
 	slots.add_child(_slot_card("주무기", Loadout.primary_id, "primary"))
 	slots.add_child(_slot_card("보조무기", Loadout.secondary_id, "secondary"))
 
-	var grid: GridContainer = equip_page.get_node("RootVBox/ListPanel/Scroll/WeaponGrid")
-	for c in grid.get_children():
-		c.queue_free()
+	# Outer 래퍼 아래로 경로 고정 (이전 ListPanel/Scroll 오경로로 그리드가 비었음)
+	var grid: GridContainer = root.get_node("ListPanel/Outer/Scroll/WeaponGrid")
+	while grid.get_child_count() > 0:
+		var ch := grid.get_child(0)
+		grid.remove_child(ch)
+		ch.free()
 	for w in WeaponCatalog.WEAPONS:
 		grid.add_child(_inventory_cell(w))
 

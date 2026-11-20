@@ -9,16 +9,16 @@ Godot 기본 폰트와 일부 글리프 누락으로 한글·구두점이 □(to
 
 ## Must
 
-- UI에 보이는 모든 텍스트(Label/Button/LineEdit/RichTextLabel)는 **`res://fonts/NotoSansKR-Regular.ttf`** 를 쓴다.
-- 프로젝트 기본값: `project.godot` → `gui/theme/custom_font` + `themes/ui_theme.tres`.
-- 런타임으로 만든 컨트롤은 autoload `UiTheme.apply_font(control)` 또는 테마 상속으로 폰트를 태운다.
+- UI 기본 표시 폰트: **`res://fonts/BlackHanSans-Regular.ttf`** (게임용 두꺼운 고딕).
+- 본문/폴백: `res://fonts/NotoSansKR-Regular.ttf` (`UiTheme.body_font()`).
+- 프로젝트 기본값: `project.godot` → `gui/theme/custom_font` = BlackHanSans.
+- 런타임 컨트롤은 autoload `UiTheme.apply_font(control)` 로 폰트를 태운다.
 - 소스/씬/번역 파일은 **UTF-8 without BOM** 만 사용한다.
 - UI 문자열에는 특수 유니코드 구두점(`·` `—` `…` `※`) 대신 ASCII `-` `/` `...` 를 쓴다. (글리프 누락 방지)
 
 ## Must not
 
 - 시스템 폰트/`SystemFont` 만으로 한글 UI를 기대하지 않는다. (웹 export에서 깨짐)
-- Jua 등 커버리지 불명확한 폰트로 새 UI를 추가하지 않는다. (레거시 파일 삭제 전엔 Noto를 우선)
 - PowerShell `Set-Content -Encoding UTF8` 로 `.gd`/`.tscn` 을 쓰지 않는다. (BOM)
 
 ## Check

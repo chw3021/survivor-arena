@@ -1,26 +1,61 @@
 extends Node
 
 ## 프로젝트 UI 공통 폰트/스타일.
-## 한글은 Noto Sans KR 고정. 특수 구두점 대신 ASCII -/ / ... 사용.
+## 표시용: Black Han Sans / 본문 폴백: Noto Sans KR
+## 특수 구두점 대신 ASCII -/ / ... 사용.
 
-const FONT_PATH := "res://fonts/NotoSansKR-Regular.ttf"
+const DISPLAY_FONT_PATH := "res://fonts/BlackHanSans-Regular.ttf"
+const BODY_FONT_PATH := "res://fonts/NotoSansKR-Regular.ttf"
 const FALLBACK_FONT_PATH := "res://fonts/Jua-Regular.ttf"
 
-var _font: Font
+var _display: Font
+var _body: Font
+
+
+func _ready() -> void:
+	font()
+	display_font()
 
 
 func font() -> Font:
-	if _font != null:
-		return _font
-	if ResourceLoader.exists(FONT_PATH):
-		_font = load(FONT_PATH)
+	## 기본 UI 폰트 (버튼/라벨) - 게임용 두꺼운 고딕.
+	return display_font()
+
+
+func display_font() -> Font:
+	if _display != null:
+		return _display
+	if ResourceLoader.exists(DISPLAY_FONT_PATH):
+		_display = load(DISPLAY_FONT_PATH)
+	elif ResourceLoader.exists(BODY_FONT_PATH):
+		_display = _make_bold_body()
 	elif ResourceLoader.exists(FALLBACK_FONT_PATH):
-		_font = load(FALLBACK_FONT_PATH)
-	return _font
+		_display = load(FALLBACK_FONT_PATH)
+	return _display
 
 
-func apply_font(node: Control, size: int = -1, color: Color = Color(-1, -1, -1, -1)) -> void:
-	var f := font()
+func body_font() -> Font:
+	if _body != null:
+		return _body
+	if ResourceLoader.exists(BODY_FONT_PATH):
+		_body = _make_bold_body()
+	else:
+		_body = display_font()
+	return _body
+
+
+func _make_bold_body() -> Font:
+	var base: Font = load(BODY_FONT_PATH)
+	var fv := FontVariation.new()
+	fv.base_font = base
+	# 가변 폰트 굵기 + 살짝 embolden (웹/에디터 모두 커버)
+	fv.variation_opentype = {0x77676874: 700} # wght
+	fv.variation_embolden = 0.3
+	return fv
+
+
+func apply_font(node: Control, size: int = -1, color: Color = Color(-1, -1, -1, -1), use_body: bool = false) -> void:
+	var f := body_font() if use_body else display_font()
 	if f == null or node == null:
 		return
 	node.add_theme_font_override("font", f)
@@ -31,7 +66,7 @@ func apply_font(node: Control, size: int = -1, color: Color = Color(-1, -1, -1, 
 
 
 func apply_tree(root: Node) -> void:
-	var f := font()
+	var f := display_font()
 	if f == null or root == null:
 		return
 	_apply_recursive(root, f)
