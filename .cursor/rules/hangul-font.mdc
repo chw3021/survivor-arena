@@ -9,8 +9,9 @@ Godot 기본 폰트와 일부 글리프 누락으로 한글·구두점이 □(to
 
 ## Must
 
-- UI 기본 폰트: **`res://fonts/NotoSansKR-Regular.ttf`** (중간 굵기. Black Han Sans는 너무 두꺼워서 기본으로 쓰지 않음).
-- 굵기 조절은 `UiTheme`의 FontVariation (`regular` / `medium` / `semibold`)만 사용한다.
+- UI 기본 폰트: **`res://fonts/NotoSansKR-Regular.ttf`** (중간~세미볼드 + outline. 가는 글씨 금지).
+- 굵기 조절은 `UiTheme.apply_font(..., weight)` 만 사용. `regular`도 실제로는 얇지 않게 올린다.
+- 한글 Label은 최소 14px, outline_size >= 2. MSDF import 유지.
 - 프로젝트 기본값: `project.godot` → `gui/theme/custom_font` = NotoSansKR.
 - 런타임 컨트롤은 autoload `UiTheme.apply_font(control, size, color, weight)` 로 폰트를 태운다.
 - 소스/씬/번역 파일은 **UTF-8 without BOM** 만 사용한다.

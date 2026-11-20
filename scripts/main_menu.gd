@@ -94,11 +94,11 @@ func _section_title(text: String, size: int = 26) -> Label:
 	return head
 
 
-func _muted_label(text: String, size: int = 14) -> Label:
+func _muted_label(text: String, size: int = 15) -> Label:
 	var lab := Label.new()
 	lab.text = text
 	lab.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	UiTheme.apply_font(lab, size, UiTheme.C_MUTED, "regular")
+	UiTheme.apply_font(lab, size, UiTheme.C_MUTED, "medium")
 	return lab
 
 
@@ -140,6 +140,10 @@ func _build_play_page() -> void:
 		UiTheme.apply_font(blurb, 13, UiTheme.C_MUTED, "regular")
 		info.add_child(blurb)
 		var go := _make_btn("출격", Vector2(120, 44))
+		UiTheme.apply_font(go, 16, UiTheme.C_TEXT, "semibold")
+		go.add_theme_stylebox_override("normal", UiTheme.button_style("cta"))
+		go.add_theme_stylebox_override("hover", UiTheme.button_style("cta"))
+		go.add_theme_stylebox_override("pressed", UiTheme.button_style("pressed"))
 		var captured: String = id
 		go.pressed.connect(func() -> void: _start_run(captured))
 		row.add_child(go)
@@ -196,8 +200,9 @@ func _build_equip_page() -> void:
 	grid.name = "WeaponGrid"
 	grid.columns = 4
 	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	grid.add_theme_constant_override("h_separation", 10)
-	grid.add_theme_constant_override("v_separation", 10)
+	grid.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	grid.add_theme_constant_override("h_separation", 12)
+	grid.add_theme_constant_override("v_separation", 12)
 	scroll.add_child(grid)
 
 
@@ -355,12 +360,14 @@ func _inventory_cell(w: Dictionary) -> PanelContainer:
 	var id := str(w["id"])
 	var selected := id == Loadout.primary_id or id == Loadout.secondary_id
 	var panel := PanelContainer.new()
-	panel.custom_minimum_size = Vector2(150, 150)
+	panel.custom_minimum_size = Vector2(120, 148)
+	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	panel.add_theme_stylebox_override("panel", UiTheme.slot_style(selected))
 	panel.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	var v := VBoxContainer.new()
 	v.add_theme_constant_override("separation", 4)
 	v.alignment = BoxContainer.ALIGNMENT_CENTER
+	v.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	panel.add_child(v)
 
 	var icon := TextureRect.new()
@@ -374,14 +381,14 @@ func _inventory_cell(w: Dictionary) -> PanelContainer:
 	var name_l := Label.new()
 	name_l.text = str(w["name"])
 	name_l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	UiTheme.apply_font(name_l, 14, UiTheme.C_TEXT, "medium")
+	UiTheme.apply_font(name_l, 15, UiTheme.C_TEXT, "semibold")
 	name_l.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	v.add_child(name_l)
 
 	var meta := Label.new()
 	meta.text = WeaponCatalog.type_label(int(w["dmg_type"]))
 	meta.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	UiTheme.apply_font(meta, 12, DamageTypes.TYPE_COLORS.get(int(w["dmg_type"]), Color(0.8, 0.85, 0.9)), "regular")
+	UiTheme.apply_font(meta, 14, DamageTypes.TYPE_COLORS.get(int(w["dmg_type"]), Color(0.85, 0.9, 0.95)), "medium")
 	meta.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	v.add_child(meta)
 
